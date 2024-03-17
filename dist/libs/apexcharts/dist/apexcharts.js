@@ -1,6 +1,6 @@
 /*!
- * ApexCharts v3.40.0
- * (c) 2018-2023 ApexCharts
+ * ApexCharts v3.47.0
+ * (c) 2018-2024 ApexCharts
  * Released under the MIT License.
  */
 (function (global, factory) {
@@ -256,6 +256,63 @@
     throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
   }
 
+  function _createForOfIteratorHelper(o, allowArrayLike) {
+    var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"];
+
+    if (!it) {
+      if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") {
+        if (it) o = it;
+        var i = 0;
+
+        var F = function () {};
+
+        return {
+          s: F,
+          n: function () {
+            if (i >= o.length) return {
+              done: true
+            };
+            return {
+              done: false,
+              value: o[i++]
+            };
+          },
+          e: function (e) {
+            throw e;
+          },
+          f: F
+        };
+      }
+
+      throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+    }
+
+    var normalCompletion = true,
+        didErr = false,
+        err;
+    return {
+      s: function () {
+        it = it.call(o);
+      },
+      n: function () {
+        var step = it.next();
+        normalCompletion = step.done;
+        return step;
+      },
+      e: function (e) {
+        didErr = true;
+        err = e;
+      },
+      f: function () {
+        try {
+          if (!normalCompletion && it.return != null) it.return();
+        } finally {
+          if (didErr) throw err;
+        }
+      }
+    };
+  }
+
   /*
    ** Generic functions which are not dependent on ApexCharts
    */
@@ -446,6 +503,12 @@
       value: function parseNumber(val) {
         if (val === null) return val;
         return parseFloat(val);
+      }
+    }, {
+      key: "stripNumber",
+      value: function stripNumber(num) {
+        var precision = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 2;
+        return Number.isInteger(num) ? num : parseFloat(num.toPrecision(precision));
       }
     }, {
       key: "randomId",
@@ -683,6 +746,51 @@
 
 
         return false;
+      } // 
+      // Find the Greatest Common Divisor of two numbers
+      //
+
+    }, {
+      key: "getGCD",
+      value: function getGCD(a, b) {
+        var p = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 7;
+        var big = Math.pow(10, p - Math.floor(Math.log10(Math.max(a, b))));
+        a = Math.round(Math.abs(a) * big);
+        b = Math.round(Math.abs(b) * big);
+
+        while (b) {
+          var t = b;
+          b = a % b;
+          a = t;
+        }
+
+        return a / big;
+      }
+    }, {
+      key: "getPrimeFactors",
+      value: function getPrimeFactors(n) {
+        var factors = [];
+        var divisor = 2;
+
+        while (n >= 2) {
+          if (n % divisor == 0) {
+            factors.push(divisor);
+            n = n / divisor;
+          } else {
+            divisor++;
+          }
+        }
+
+        return factors;
+      }
+    }, {
+      key: "mod",
+      value: function mod(a, b) {
+        var p = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 7;
+        var big = Math.pow(10, p - Math.floor(Math.log10(Math.max(a, b))));
+        a = Math.round(Math.abs(a) * big);
+        b = Math.round(Math.abs(b) * big);
+        return a % b / big;
       }
     }]);
 
@@ -871,6 +979,7 @@
         this.w.globals.delayedElements.forEach(function (d) {
           var ele = d.el;
           ele.classList.remove('apexcharts-element-hidden');
+          ele.classList.add('apexcharts-hidden-element-shown');
         });
       }
     }, {
@@ -1081,11 +1190,21 @@
     }, {
       key: "addShadow",
       value: function addShadow(add, i, attrs) {
+        var _w$config$chart$dropS;
+
+        var w = this.w;
         var blur = attrs.blur,
             top = attrs.top,
             left = attrs.left,
             color = attrs.color,
             opacity = attrs.opacity;
+
+        if (((_w$config$chart$dropS = w.config.chart.dropShadow.enabledOnSeries) === null || _w$config$chart$dropS === void 0 ? void 0 : _w$config$chart$dropS.length) > 0) {
+          if (w.config.chart.dropShadow.enabledOnSeries.indexOf(i) === -1) {
+            return add;
+          }
+        }
+
         var shadowBlur = add.flood(Array.isArray(color) ? color[i] : color, opacity).composite(add.sourceAlpha, 'in').offset(left, top).gaussianBlur(blur).merge(add.source);
         return add.blend(add.source, shadowBlur);
       } // directly adds dropShadow to the element and returns the same element.
@@ -1094,6 +1213,8 @@
     }, {
       key: "dropShadow",
       value: function dropShadow(el, attrs) {
+        var _w$config$chart$dropS2;
+
         var i = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
         var top = attrs.top,
             left = attrs.left,
@@ -1107,6 +1228,14 @@
         if (Utils$1.isIE() && w.config.chart.type === 'radialBar') {
           // in radialbar charts, dropshadow is clipping actual drawing in IE
           return el;
+        }
+
+        if (((_w$config$chart$dropS2 = w.config.chart.dropShadow.enabledOnSeries) === null || _w$config$chart$dropS2 === void 0 ? void 0 : _w$config$chart$dropS2.length) > 0) {
+          var _w$config$chart$dropS3;
+
+          if (((_w$config$chart$dropS3 = w.config.chart.dropShadow.enabledOnSeries) === null || _w$config$chart$dropS3 === void 0 ? void 0 : _w$config$chart$dropS3.indexOf(i)) === -1) {
+            return el;
+          }
         }
 
         color = Array.isArray(color) ? color[i] : color;
@@ -1597,10 +1726,8 @@
           filters.getDefaultFilter(el, realIndex);
         } else {
           if (w.config.chart.dropShadow.enabled && drawShadow) {
-            if (!w.config.chart.dropShadow.enabledOnSeries || w.config.chart.dropShadow.enabledOnSeries && w.config.chart.dropShadow.enabledOnSeries.indexOf(realIndex) !== -1) {
-              var shadow = w.config.chart.dropShadow;
-              filters.dropShadow(el, shadow, realIndex);
-            }
+            var shadow = w.config.chart.dropShadow;
+            filters.dropShadow(el, shadow, realIndex);
           }
         }
 
@@ -1800,7 +1927,9 @@
             _ref4$cssClass = _ref4.cssClass,
             cssClass = _ref4$cssClass === void 0 ? '' : _ref4$cssClass,
             _ref4$isPlainText = _ref4.isPlainText,
-            isPlainText = _ref4$isPlainText === void 0 ? true : _ref4$isPlainText;
+            isPlainText = _ref4$isPlainText === void 0 ? true : _ref4$isPlainText,
+            _ref4$dominantBaselin = _ref4.dominantBaseline,
+            dominantBaseline = _ref4$dominantBaselin === void 0 ? 'auto' : _ref4$dominantBaselin;
         var w = this.w;
         if (typeof text === 'undefined') text = '';
         var truncatedText = text;
@@ -1853,7 +1982,7 @@
           x: x,
           y: y,
           'text-anchor': textAnchor,
-          'dominant-baseline': 'auto',
+          'dominant-baseline': dominantBaseline,
           'font-size': fontSize,
           'font-family': fontFamily,
           'font-weight': fontWeight,
@@ -1864,6 +1993,63 @@
         elText.node.style.opacity = opacity;
         return elText;
       }
+      /**
+       * Creates a group with given attributes.
+       * @param {number} x - The x-coordinate of the group.
+       * @param {number} y - The y-coordinate of the group.
+       * @param {Array} lines - The lines to be added to the group.
+       * @param {Object} opts - The options for the group.
+       * @returns {Object} The created group.
+       */
+
+    }, {
+      key: "createGroupWithAttributes",
+      value: function createGroupWithAttributes(x, y, lines, opts) {
+        var elPoint = this.group();
+        lines.forEach(function (line) {
+          return elPoint.add(line);
+        });
+        elPoint.attr({
+          class: opts.class ? opts.class : '',
+          cy: y,
+          cx: x
+        });
+        return elPoint;
+      }
+      /**
+       * Draws a plus sign at the given coordinates.
+       * @param {number} x - The x-coordinate of the plus sign.
+       * @param {number} y - The y-coordinate of the plus sign.
+       * @param {number} size - The size of the plus sign.
+       * @param {Object} opts - The options for the plus sign.
+       * @returns {Object} The created plus sign.
+       */
+
+    }, {
+      key: "drawPlus",
+      value: function drawPlus(x, y, size, opts) {
+        var halfSize = size / 2;
+        var line1 = this.drawLine(x, y - halfSize, x, y + halfSize, opts.pointStrokeColor, opts.pointStrokeDashArray, opts.pointStrokeWidth, opts.pointStrokeLineCap);
+        var line2 = this.drawLine(x - halfSize, y, x + halfSize, y, opts.pointStrokeColor, opts.pointStrokeDashArray, opts.pointStrokeWidth, opts.pointStrokeLineCap);
+        return this.createGroupWithAttributes(x, y, [line1, line2], opts);
+      }
+      /**
+       * Draws an 'X' at the given coordinates.
+       * @param {number} x - The x-coordinate of the 'X'.
+       * @param {number} y - The y-coordinate of the 'X'.
+       * @param {number} size - The size of the 'X'.
+       * @param {Object} opts - The options for the 'X'.
+       * @returns {Object} The created 'X'.
+       */
+
+    }, {
+      key: "drawX",
+      value: function drawX(x, y, size, opts) {
+        var halfSize = size / 2;
+        var line1 = this.drawLine(x - halfSize, y - halfSize, x + halfSize, y + halfSize, opts.pointStrokeColor, opts.pointStrokeDashArray, opts.pointStrokeWidth, opts.pointStrokeLineCap);
+        var line2 = this.drawLine(x - halfSize, y + halfSize, x + halfSize, y - halfSize, opts.pointStrokeColor, opts.pointStrokeDashArray, opts.pointStrokeWidth, opts.pointStrokeLineCap);
+        return this.createGroupWithAttributes(x, y, [line1, line2], opts);
+      }
     }, {
       key: "drawMarker",
       value: function drawMarker(x, y, opts) {
@@ -1871,7 +2057,11 @@
         var size = opts.pSize || 0;
         var elPoint = null;
 
-        if (opts.shape === 'square' || opts.shape === 'rect') {
+        if ((opts === null || opts === void 0 ? void 0 : opts.shape) === 'X' || (opts === null || opts === void 0 ? void 0 : opts.shape) === 'x') {
+          elPoint = this.drawX(x, y, size, opts);
+        } else if ((opts === null || opts === void 0 ? void 0 : opts.shape) === 'plus' || (opts === null || opts === void 0 ? void 0 : opts.shape) === '+') {
+          elPoint = this.drawPlus(x, y, size, opts);
+        } else if (opts.shape === 'square' || opts.shape === 'rect') {
           var radius = opts.pRadius === undefined ? size / 2 : opts.pRadius;
 
           if (y === null || !size) {
@@ -2216,6 +2406,37 @@
           }, 0);
         }
       }
+      /**
+       * @memberof CoreUtils
+       * returns the sum of values in a multiple stacked grouped charts
+       * Eg. w.globals.series = [[32,33,43,12], [2,3,5,1], [43, 23, 34, 22]]
+       * series 1 and 2 are in a group, while series 3 is in another group
+       *  @return [[34, 36, 48, 12], [43, 23, 34, 22]]
+       **/
+
+    }, {
+      key: "getStackedSeriesTotalsByGroups",
+      value: function getStackedSeriesTotalsByGroups() {
+        var _this = this;
+
+        var w = this.w;
+        var total = [];
+        w.globals.seriesGroups.forEach(function (sg) {
+          var includedIndexes = [];
+          w.config.series.forEach(function (s, si) {
+            if (sg.indexOf(s.name) > -1) {
+              includedIndexes.push(si);
+            }
+          });
+          var excludedIndices = w.globals.series.map(function (_, fi) {
+            return includedIndexes.indexOf(fi) === -1 ? fi : -1;
+          }).filter(function (f) {
+            return f !== -1;
+          });
+          total.push(_this.getStackedSeriesTotals(excludedIndices));
+        });
+        return total;
+      }
     }, {
       key: "isSeriesNull",
       value: function isSeriesNull() {
@@ -2378,7 +2599,6 @@
         var yRatio = [];
         var invertedYRatio = 0;
         var xRatio = 0;
-        var initialXRatio = 0;
         var invertedXRatio = 0;
         var zRatio = 0;
         var baseLineY = [];
@@ -2403,7 +2623,6 @@
         }
 
         xRatio = gl.xRange / gl.gridWidth;
-        initialXRatio = Math.abs(gl.initialMaxX - gl.initialMinX) / gl.gridWidth;
         invertedYRatio = gl.yRange / gl.gridWidth;
         invertedXRatio = gl.xRange / gl.gridHeight;
         zRatio = gl.zRange / gl.gridHeight * 16;
@@ -2438,7 +2657,6 @@
           invertedYRatio: invertedYRatio,
           zRatio: zRatio,
           xRatio: xRatio,
-          initialXRatio: initialXRatio,
           invertedXRatio: invertedXRatio,
           baseLineInvertedY: baseLineInvertedY,
           baseLineY: baseLineY,
@@ -2448,14 +2666,14 @@
     }, {
       key: "getLogSeries",
       value: function getLogSeries(series) {
-        var _this = this;
+        var _this2 = this;
 
         var w = this.w;
         w.globals.seriesLog = series.map(function (s, i) {
           if (w.config.yaxis[i] && w.config.yaxis[i].logarithmic) {
             return s.map(function (d) {
               if (d === null) return null;
-              return _this.getLogVal(w.config.yaxis[i].logBase, d, i);
+              return _this2.getLogVal(w.config.yaxis[i].logBase, d, i);
             });
           } else {
             return s;
@@ -2488,13 +2706,13 @@
     }, {
       key: "getLogYRatios",
       value: function getLogYRatios(yRatio) {
-        var _this2 = this;
+        var _this3 = this;
 
         var w = this.w;
         var gl = this.w.globals;
         gl.yLogRatio = yRatio.slice();
         gl.logYRange = gl.yRange.map(function (yRange, i) {
-          if (w.config.yaxis[i] && _this2.w.config.yaxis[i].logarithmic) {
+          if (w.config.yaxis[i] && _this3.w.config.yaxis[i].logarithmic) {
             var maxY = -Number.MAX_VALUE;
             var minY = Number.MIN_VALUE;
             var range = 1;
@@ -2545,20 +2763,24 @@
     }, {
       key: "extendArrayProps",
       value: function extendArrayProps(configInstance, options, w) {
-        if (options.yaxis) {
+        var _options, _options2;
+
+        if ((_options = options) !== null && _options !== void 0 && _options.yaxis) {
           options = configInstance.extendYAxis(options, w);
         }
 
-        if (options.annotations) {
+        if ((_options2 = options) !== null && _options2 !== void 0 && _options2.annotations) {
+          var _options3, _options3$annotations, _options4, _options4$annotations;
+
           if (options.annotations.yaxis) {
             options = configInstance.extendYAxisAnnotations(options);
           }
 
-          if (options.annotations.xaxis) {
+          if ((_options3 = options) !== null && _options3 !== void 0 && (_options3$annotations = _options3.annotations) !== null && _options3$annotations !== void 0 && _options3$annotations.xaxis) {
             options = configInstance.extendXAxisAnnotations(options);
           }
 
-          if (options.annotations.points) {
+          if ((_options4 = options) !== null && _options4 !== void 0 && (_options4$annotations = _options4.annotations) !== null && _options4$annotations !== void 0 && _options4$annotations.points) {
             options = configInstance.extendPointAnnotations(options);
           }
         }
@@ -2686,16 +2908,25 @@
         var w = this.w;
 
         if (this.annoCtx.invertAxis) {
-          var catIndex = w.globals.labels.indexOf(y);
+          var labels = w.globals.labels;
 
           if (w.config.xaxis.convertedCatToNumeric) {
-            catIndex = w.globals.categoryLabels.indexOf(y);
+            labels = w.globals.categoryLabels;
           }
 
+          var catIndex = labels.indexOf(y);
           var xLabel = w.globals.dom.baseEl.querySelector('.apexcharts-yaxis-texts-g text:nth-child(' + (catIndex + 1) + ')');
 
           if (xLabel) {
             yP = parseFloat(xLabel.getAttribute('y'));
+          } else {
+            yP = (w.globals.gridHeight / labels.length - 1) * (catIndex + 1) - w.globals.barHeight;
+          }
+
+          if (typeof anno.seriesIndex !== 'undefined') {
+            if (w.globals.barHeight) {
+              yP = yP - w.globals.barHeight / 2 * (w.globals.series.length - 1) + w.globals.barHeight * anno.seriesIndex;
+            }
           }
         } else {
           var yPos;
@@ -2764,6 +2995,12 @@
 
         if (type === 'x2' && typeof anno.x2 === 'string' && anno.x2.indexOf('px') > -1) {
           x2 = parseFloat(anno.x2);
+        }
+
+        if (typeof anno.seriesIndex !== 'undefined') {
+          if (w.globals.barWidth && !this.annoCtx.invertAxis) {
+            x1 = x1 - w.globals.barWidth / 2 * (w.globals.series.length - 1) + w.globals.barWidth * anno.seriesIndex;
+          }
         }
 
         return type === 'x1' ? x1 : x2;
@@ -3183,6 +3420,7 @@
         logarithmic: false,
         logBase: 10,
         tickAmount: undefined,
+        stepSize: undefined,
         forceNiceScale: false,
         max: undefined,
         min: undefined,
@@ -3252,7 +3490,7 @@
         x: 0,
         y: null,
         yAxisIndex: 0,
-        seriesIndex: 0,
+        seriesIndex: undefined,
         mouseEnter: undefined,
         mouseLeave: undefined,
         click: undefined,
@@ -3478,6 +3716,7 @@
             redrawOnWindowResize: true,
             id: undefined,
             group: undefined,
+            nonce: undefined,
             offsetX: 0,
             offsetY: 0,
             selection: {
@@ -3509,9 +3748,12 @@
             brush: {
               enabled: false,
               autoScaleYaxis: true,
-              target: undefined
+              target: undefined,
+              targets: undefined
             },
             stacked: false,
+            stackOnlyBar: true,
+            // mixed chart with stacked bars and line series - incorrect line draw #907
             stackType: 'normal',
             toolbar: {
               show: true,
@@ -3587,6 +3829,8 @@
               hideZeroBarsWhenGrouped: false,
               isDumbbell: false,
               dumbbellColors: undefined,
+              isFunnel: false,
+              isFunnel3d: true,
               colors: {
                 ranges: [],
                 backgroundBarColors: [],
@@ -3653,6 +3897,11 @@
               distributed: false,
               reverseNegativeShade: false,
               useFillColorAsStroke: false,
+              borderRadius: 4,
+              dataLabels: {
+                format: 'scale' // scale | truncate
+
+              },
               colorScale: {
                 inverse: false,
                 ranges: [],
@@ -3741,6 +3990,18 @@
                     }, 0) / w.globals.series.length + '%';
                   }
                 }
+              },
+              barLabels: {
+                enabled: false,
+                margin: 5,
+                useSeriesColors: true,
+                fontFamily: undefined,
+                fontWeight: 600,
+                fontSize: '16px',
+                formatter: function formatter(val) {
+                  return val;
+                },
+                onClick: undefined
               }
             },
             pie: {
@@ -4081,7 +4342,7 @@
           stroke: {
             show: true,
             curve: 'smooth',
-            // "smooth" / "straight" / "stepline"
+            // "smooth" / "straight" / "monotoneCubic" / "stepline"
             lineCap: 'butt',
             // round, butt , square
             width: 2,
@@ -4111,6 +4372,7 @@
             enabled: true,
             enabledOnSeries: undefined,
             shared: true,
+            hideEmptySeries: false,
             followCursor: false,
             // when disabled, the tooltip will show on top of the series instead of mouse position
             intersect: false,
@@ -4226,6 +4488,7 @@
               offsetX: 0,
               offsetY: 0
             },
+            stepSize: undefined,
             tickAmount: undefined,
             tickPlacement: 'on',
             min: undefined,
@@ -4423,7 +4686,7 @@
             borderRadius = params.borderRadius,
             borderColor = params.borderColor,
             _params$appendTo = params.appendTo,
-            appendTo = _params$appendTo === void 0 ? '.apexcharts-annotations' : _params$appendTo,
+            appendTo = _params$appendTo === void 0 ? '.apexcharts-svg' : _params$appendTo,
             _params$paddingLeft = params.paddingLeft,
             paddingLeft = _params$paddingLeft === void 0 ? 4 : _params$paddingLeft,
             _params$paddingRight = params.paddingRight,
@@ -4471,7 +4734,7 @@
             _params$height = params.height,
             height = _params$height === void 0 ? 20 : _params$height,
             _params$appendTo2 = params.appendTo,
-            appendTo = _params$appendTo2 === void 0 ? '.apexcharts-annotations' : _params$appendTo2;
+            appendTo = _params$appendTo2 === void 0 ? '.apexcharts-svg' : _params$appendTo2;
         var img = w.globals.dom.Paper.image(path);
         img.size(width, height).move(x, y);
         var parent = w.globals.dom.baseEl.querySelector(appendTo);
@@ -4634,6 +4897,10 @@
     _createClass(DateTime, [{
       key: "isValidDate",
       value: function isValidDate(date) {
+        if (typeof date === 'number') {
+          return false; // don't test for timestamps
+        }
+
         return !isNaN(this.parseDate(date));
       }
     }, {
@@ -5157,6 +5424,15 @@
     }
 
     _createClass(Defaults, [{
+      key: "hideYAxis",
+      value: function hideYAxis() {
+        this.opts.yaxis[0].show = false;
+        this.opts.yaxis[0].title.text = '';
+        this.opts.yaxis[0].axisBorder.show = false;
+        this.opts.yaxis[0].axisTicks.show = false;
+        this.opts.yaxis[0].floating = true;
+      }
+    }, {
       key: "line",
       value: function line() {
         return {
@@ -5188,11 +5464,7 @@
     }, {
       key: "sparkline",
       value: function sparkline(defaults) {
-        this.opts.yaxis[0].show = false;
-        this.opts.yaxis[0].title.text = '';
-        this.opts.yaxis[0].axisBorder.show = false;
-        this.opts.yaxis[0].axisTicks.show = false;
-        this.opts.yaxis[0].floating = true;
+        this.hideYAxis();
         var ret = {
           grid: {
             show: false,
@@ -5297,6 +5569,53 @@
             }
           }
         };
+      }
+    }, {
+      key: "funnel",
+      value: function funnel() {
+        this.hideYAxis();
+        return _objectSpread2(_objectSpread2({}, this.bar()), {}, {
+          chart: {
+            animations: {
+              easing: 'linear',
+              speed: 800,
+              animateGradually: {
+                enabled: false
+              }
+            }
+          },
+          plotOptions: {
+            bar: {
+              horizontal: true,
+              borderRadiusApplication: 'around',
+              borderRadius: 0,
+              dataLabels: {
+                position: 'center'
+              }
+            }
+          },
+          grid: {
+            show: false,
+            padding: {
+              left: 0,
+              right: 0
+            }
+          },
+          xaxis: {
+            labels: {
+              show: false
+            },
+            tooltip: {
+              enabled: false
+            },
+            axisBorder: {
+              show: false
+            },
+            axisTicks: {
+              show: false
+            }
+          }
+        });
       }
     }, {
       key: "candlestick",
@@ -5948,7 +6267,6 @@
     }, {
       key: "polarArea",
       value: function polarArea() {
-        this.opts.yaxis[0].tickAmount = this.opts.yaxis[0].tickAmount ? this.opts.yaxis[0].tickAmount : 6;
         return {
           chart: {
             toolbar: {
@@ -6109,7 +6427,7 @@
         var newDefaults = {};
 
         if (opts && _typeof(opts) === 'object') {
-          var _opts$chart$brush, _opts$plotOptions, _opts$plotOptions$bar, _opts$chart$sparkline, _window$Apex$chart, _window$Apex$chart$sp;
+          var _opts$plotOptions, _opts$plotOptions$bar, _opts$chart$brush, _opts$plotOptions2, _opts$plotOptions2$ba, _opts$chart$sparkline, _window$Apex$chart, _window$Apex$chart$sp;
 
           var chartDefaults = {};
           var chartTypes = ['line', 'area', 'bar', 'candlestick', 'boxPlot', 'rangeBar', 'rangeArea', 'bubble', 'scatter', 'heatmap', 'treemap', 'pie', 'polarArea', 'donut', 'radar', 'radialBar'];
@@ -6118,6 +6436,10 @@
             chartDefaults = defaults[opts.chart.type]();
           } else {
             chartDefaults = defaults.line();
+          }
+
+          if ((_opts$plotOptions = opts.plotOptions) !== null && _opts$plotOptions !== void 0 && (_opts$plotOptions$bar = _opts$plotOptions.bar) !== null && _opts$plotOptions$bar !== void 0 && _opts$plotOptions$bar.isFunnel) {
+            chartDefaults = defaults.funnel();
           }
 
           if (opts.chart.stacked && opts.chart.type === 'bar') {
@@ -6132,7 +6454,7 @@
             opts = defaults.stacked100(opts);
           }
 
-          if ((_opts$plotOptions = opts.plotOptions) !== null && _opts$plotOptions !== void 0 && (_opts$plotOptions$bar = _opts$plotOptions.bar) !== null && _opts$plotOptions$bar !== void 0 && _opts$plotOptions$bar.isDumbbell) {
+          if ((_opts$plotOptions2 = opts.plotOptions) !== null && _opts$plotOptions2 !== void 0 && (_opts$plotOptions2$ba = _opts$plotOptions2.bar) !== null && _opts$plotOptions2$ba !== void 0 && _opts$plotOptions2$ba.isDumbbell) {
             opts = defaults.dumbbell(opts);
           } // If user has specified a dark theme, make the tooltip dark too
 
@@ -6170,10 +6492,10 @@
     }, {
       key: "checkForCatToNumericXAxis",
       value: function checkForCatToNumericXAxis(chartType, chartDefaults, opts) {
-        var _opts$plotOptions2, _opts$plotOptions2$ba;
+        var _opts$plotOptions3, _opts$plotOptions3$ba;
 
         var defaults = new Defaults(opts);
-        var isBarHorizontal = (chartType === 'bar' || chartType === 'boxPlot') && ((_opts$plotOptions2 = opts.plotOptions) === null || _opts$plotOptions2 === void 0 ? void 0 : (_opts$plotOptions2$ba = _opts$plotOptions2.bar) === null || _opts$plotOptions2$ba === void 0 ? void 0 : _opts$plotOptions2$ba.horizontal);
+        var isBarHorizontal = (chartType === 'bar' || chartType === 'boxPlot') && ((_opts$plotOptions3 = opts.plotOptions) === null || _opts$plotOptions3 === void 0 ? void 0 : (_opts$plotOptions3$ba = _opts$plotOptions3.bar) === null || _opts$plotOptions3$ba === void 0 ? void 0 : _opts$plotOptions3$ba.horizontal);
         var unsupportedZoom = chartType === 'pie' || chartType === 'polarArea' || chartType === 'donut' || chartType === 'radar' || chartType === 'radialBar' || chartType === 'heatmap';
         var notNumericXAxis = opts.xaxis.type !== 'datetime' && opts.xaxis.type !== 'numeric';
         var tickPlacement = opts.xaxis.tickPlacement ? opts.xaxis.tickPlacement : chartDefaults.xaxis && chartDefaults.xaxis.tickPlacement;
@@ -6239,7 +6561,7 @@
         }
 
         if (isLogY && series.length > 1 && series.length !== opts.yaxis.length) {
-          console.warn('A multi-series logarithmic chart should have equal number of series and y-axes. Please make sure to equalize both.');
+          console.warn('A multi-series logarithmic chart should have equal number of series and y-axes');
         }
 
         return opts;
@@ -6433,6 +6755,7 @@
         gl.zRange = 0;
         gl.dataPoints = 0;
         gl.xTickAmount = 0;
+        gl.multiAxisTickAmount = 0;
       }
     }, {
       key: "globalVars",
@@ -6517,7 +6840,6 @@
           // if a user enabled log scale but the data provided is not valid to generate a log scale, turn on this flag
           ignoreYAxisIndexes: [],
           // when series are being collapsed in multiple y axes, ignore certain index
-          yAxisSameScaleIndices: [],
           maxValsInArrayIndex: 0,
           radialSize: 0,
           selection: undefined,
@@ -6611,7 +6933,34 @@
           yAxisWidths: [],
           translateXAxisY: 0,
           translateXAxisX: 0,
-          tooltip: null
+          tooltip: null,
+          // Rules for niceScaleAllowedMagMsd:
+          // 1) An array of two arrays only ([[],[]]):
+          //    * array[0][]: influences labelling of data series that contain only integers
+          //       - must contain only integers (or expect ugly ticks)
+          //    * array[1][]: influences labelling of data series that contain at least one float
+          //       - may contain floats
+          //    * both arrays:
+          //       - each array[][i] ideally satisfy: 10 mod array[][i] == 0 (or expect ugly ticks)
+          //       - to avoid clipping data point keep each array[][i] >= i
+          // 2) each array[i][] contains 11 values, for all possible index values 0..10.
+          //    array[][0] should not be needed (not proven) but ensures non-zero is returned.
+          // 
+          // Users can effectively force their preferred "magMsd" through stepSize and
+          // forceNiceScale. With forceNiceScale: true, stepSize becomes normalizable to the
+          // axis's min..max range, which allows users to set stepSize to an integer 1..10, for
+          // example, stepSize: 3. This value will be preferred to the value determined through
+          // this array. The range-normalized value is checked for consistency with other
+          // user defined options and will be ignored if inconsistent.
+          niceScaleAllowedMagMsd: [[1, 1, 2, 5, 5, 5, 10, 10, 10, 10, 10], [1, 1, 2, 5, 5, 5, 10, 10, 10, 10, 10]],
+          // Default ticks based on SVG size. These values have high numbers
+          // of divisors. The array is indexed using a calculated maxTicks value
+          // divided by 2 simply to halve the array size. See Scales.niceScale().
+          niceScaleDefaultTicks: [1, 2, 4, 4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 12, 12, 12, 12, 12, 12, 12, 12, 12, 24],
+          seriesYAxisMap: [],
+          // Given yAxis index, return all series indices belonging to it. Multiple series can be referenced to each yAxis.
+          seriesYAxisReverseMap: [] // Given a Series index, return its yAxis index.
+
         };
       }
     }, {
@@ -6726,8 +7075,9 @@
       key: "getSeriesIndex",
       value: function getSeriesIndex(opts) {
         var w = this.w;
+        var cType = w.config.chart.type;
 
-        if ((w.config.chart.type === 'bar' || w.config.chart.type === 'rangeBar') && w.config.plotOptions.bar.distributed || w.config.chart.type === 'heatmap' || w.config.chart.type === 'treemap') {
+        if ((cType === 'bar' || cType === 'rangeBar') && w.config.plotOptions.bar.distributed || cType === 'heatmap' || cType === 'treemap') {
           this.seriesIndex = opts.seriesNumber;
         } else {
           this.seriesIndex = opts.seriesNumber % w.globals.series.length;
@@ -6765,6 +7115,12 @@
 
         if (opts.color) {
           fillColor = opts.color;
+        } // in case a color is undefined, fallback to white color to prevent runtime error
+
+
+        if (!fillColor) {
+          fillColor = '#fff';
+          console.warn('undefined color - ApexCharts');
         }
 
         var defaultColor = fillColor;
@@ -7091,7 +7447,7 @@
                 opts.pSize = pSize;
               }
 
-              if (p.x[q] < 0 || p.x[q] > w.globals.gridWidth || p.y[q] < 0 || p.y[q] > w.globals.gridHeight) {
+              if (p.x[q] < 0 || p.x[q] > w.globals.gridWidth || p.y[q] < -w.globals.markers.largestSize || p.y[q] > w.globals.gridHeight + w.globals.markers.largestSize) {
                 opts.pSize = 0;
               }
 
@@ -7447,7 +7803,7 @@
           var lastDataLabelRect = w.globals.dataLabelsRects[i][lastDrawnIndex];
 
           if ( // next label forward and x not intersecting
-          x > lastDataLabelRect.x + lastDataLabelRect.width + 2 || y > lastDataLabelRect.y + lastDataLabelRect.height + 2 || x + width < lastDataLabelRect.x // next label is going to be drawn backwards
+          x > lastDataLabelRect.x + lastDataLabelRect.width || y > lastDataLabelRect.y + lastDataLabelRect.height || y + height < lastDataLabelRect.y || x + width < lastDataLabelRect.x // next label is going to be drawn backwards
           ) {
             // the 2 indexes don't override, so OK to draw next label
             drawnextLabel = true;
@@ -7486,8 +7842,9 @@
         var y = 0;
         var dataPointIndex = j;
         var elDataLabelsWrap = null;
+        var seriesCollapsed = w.globals.collapsedSeriesIndices.indexOf(i) !== -1;
 
-        if (!dataLabelsConfig.enabled || !Array.isArray(pos.x)) {
+        if (seriesCollapsed || !dataLabelsConfig.enabled || !Array.isArray(pos.x)) {
           return elDataLabelsWrap;
         }
 
@@ -7596,7 +7953,7 @@
 
         if (correctedLabels.textRects) {
           // fixes #2264
-          if (x < -10 - correctedLabels.textRects.width || x > w.globals.gridWidth + correctedLabels.textRects.width + 10) {
+          if (x < -20 - correctedLabels.textRects.width || x > w.globals.gridWidth + correctedLabels.textRects.width + 30) {
             // datalabels fall outside drawing area, so draw a blank label
             text = '';
           }
@@ -8312,7 +8669,7 @@
         for (var _j2 = 0; _j2 < ser[activeI].data.length; _j2++) {
           var isXString = typeof ser[activeI].data[_j2].x === 'string';
           var isXArr = Array.isArray(ser[activeI].data[_j2].x);
-          var isXDate = !isXArr && !!dt.isValidDate(ser[activeI].data[_j2].x.toString());
+          var isXDate = !isXArr && !!dt.isValidDate(ser[activeI].data[_j2].x);
 
           if (isXString || isXDate) {
             // user supplied '01/01/2017' or a date string (a JS date object is not supported)
@@ -8325,6 +8682,10 @@
                 // a category and not a numeric x value
                 this.fallbackToCategory = true;
                 this.twoDSeriesX.push(ser[activeI].data[_j2].x);
+
+                if (!isNaN(ser[activeI].data[_j2].x) && this.w.config.xaxis.type !== 'category' && typeof ser[activeI].data[_j2].x !== 'string') {
+                  gl.isXNumeric = true;
+                }
               }
             } else {
               if (cnf.xaxis.type === 'datetime') {
@@ -8365,10 +8726,11 @@
           range = this.handleRangeDataFormat('array', ser, i);
         } else if (this.isFormatXY()) {
           range = this.handleRangeDataFormat('xy', ser, i);
-        }
+        } // Fix: RangeArea Chart: hide all series results in a crash #3984
 
-        gl.seriesRangeStart.push(range.start);
-        gl.seriesRangeEnd.push(range.end);
+
+        gl.seriesRangeStart.push(range.start === undefined ? [] : range.start);
+        gl.seriesRangeEnd.push(range.end === undefined ? [] : range.end);
         gl.seriesRange.push(range.rangeUniques); // check for overlaps to avoid clashes in a timeline chart
 
         gl.seriesRange.forEach(function (sr, si) {
@@ -8454,7 +8816,7 @@
               y1: isDataPoint2D ? ser[i].data[_j3].y[0] : ser[i].data[_j3].y,
               y2: isDataPoint2D ? ser[i].data[_j3].y[1] : ser[i].data[_j3].y,
               rangeName: id
-            }; // mutating config object by adding a new property
+            }; // CAUTION: mutating config object by adding a new property
             // TODO: As this is specifically for timeline rangebar charts, update the docs mentioning the series only supports xy format
 
             ser[i].data[_j3].rangeName = id;
@@ -8612,11 +8974,7 @@
           if (cnf.chart.type === 'rangeBar' || cnf.chart.type === 'rangeArea' || ser[i].type === 'rangeBar' || ser[i].type === 'rangeArea') {
             gl.isRangeData = true;
 
-            if (gl.isComboCharts) {
-              if (ser[i].type === 'rangeBar' || ser[i].type === 'rangeArea') {
-                this.handleRangeData(ser, i);
-              }
-            } else if (cnf.chart.type === 'rangeBar' || cnf.chart.type === 'rangeArea') {
+            if (cnf.chart.type === 'rangeBar' || cnf.chart.type === 'rangeArea') {
               this.handleRangeData(ser, i);
             }
           }
@@ -8727,10 +9085,9 @@
                   gl.labels.push(sr.x);
                 }
               });
-            });
-            gl.labels = gl.labels.filter(function (elem, pos, arr) {
-              return arr.indexOf(elem) === pos;
-            });
+            }); // remove duplicate x-axis labels
+
+            gl.labels = Array.from(new Set(gl.labels.map(JSON.stringify)), JSON.parse);
           }
 
           if (cnf.xaxis.convertedCatToNumeric) {
@@ -8784,7 +9141,9 @@
           } // turn on the isXNumeric flag to allow minX and maxX to function properly
 
 
-          gl.isXNumeric = true;
+          if (!this.w.globals.isBarHorizontal) {
+            gl.isXNumeric = true;
+          }
         } // no series to pull labels from, put a 0-10 series
         // possibly, user collapsed all series. Hence we can't work with above calc
 
@@ -8834,7 +9193,7 @@
         } // set Null values to 0 in all series when user hides/shows some series
 
 
-        if (cnf.chart.type === 'bar' && cnf.chart.stacked) {
+        if (cnf.chart.stacked) {
           var series = new Series(this.ctx);
           gl.series = series.setNullSeriesToZeroValues(gl.series);
         }
@@ -8843,6 +9202,7 @@
 
         if (gl.axisCharts) {
           gl.stackedSeriesTotals = this.coreUtils.getStackedSeriesTotals();
+          gl.stackedSeriesTotalsByGroups = this.coreUtils.getStackedSeriesTotalsByGroups();
         }
 
         this.coreUtils.getPercentSeries();
@@ -8865,15 +9225,29 @@
     }, {
       key: "excludeCollapsedSeriesInYAxis",
       value: function excludeCollapsedSeriesInYAxis() {
-        var _this2 = this;
+        var w = this.w; // fix issue #1215
+        // Post revision 3.46.0 there is no longer a strict one-to-one
+        // correspondence between series and Y axes.
+        // An axis can be ignored only while all series referenced by it
+        // are collapsed.
 
-        var w = this.w;
-        w.globals.ignoreYAxisIndexes = w.globals.collapsedSeries.map(function (collapsed, i) {
-          // fix issue #1215
-          // if stacked, not returning collapsed.index to preserve yaxis
-          if (_this2.w.globals.isMultipleYAxis && !w.config.chart.stacked) {
-            return collapsed.index;
+        var yAxisIndexes = [];
+        w.globals.seriesYAxisMap.forEach(function (yAxisArr, yi) {
+          var collapsedCount = 0;
+          yAxisArr.forEach(function (seriesIndex) {
+            if (w.globals.collapsedSeriesIndices.indexOf(seriesIndex) !== -1) {
+              collapsedCount++;
+            }
+          }); // It's possible to have a yaxis that doesn't reference any series yet,
+          // eg, because there are no series' yet, so don't list it as ignored
+          // prematurely.
+
+          if (collapsedCount > 0 && collapsedCount == yAxisArr.length) {
+            yAxisIndexes.push(yi);
           }
+        });
+        w.globals.ignoreYAxisIndexes = yAxisIndexes.map(function (x) {
+          return x;
         });
       }
     }]);
@@ -8960,7 +9334,7 @@
 
         var allowDuplicatesInTimeScale = !w.config.xaxis.labels.showDuplicates && this.ctx.timeScale;
 
-        if (!Array.isArray(label) && (label.indexOf('NaN') === 0 || label.toLowerCase().indexOf('invalid') === 0 || label.toLowerCase().indexOf('infinity') >= 0 || drawnLabels.indexOf(label) >= 0 && allowDuplicatesInTimeScale)) {
+        if (!Array.isArray(label) && (String(label) === 'NaN' || drawnLabels.indexOf(label) >= 0 && allowDuplicatesInTimeScale)) {
           label = '';
         }
 
@@ -9033,7 +9407,10 @@
       value: function isYAxisHidden(index) {
         var w = this.w;
         var coreUtils = new CoreUtils(this.ctx);
-        return !w.config.yaxis[index].show || !w.config.yaxis[index].showForNullSeries && coreUtils.isSeriesNull(index) && w.globals.collapsedSeriesIndices.indexOf(index) === -1;
+        var allCollapsed = !w.globals.seriesYAxisMap[index].some(function (si) {
+          return w.globals.collapsedSeriesIndices.indexOf(si) === -1;
+        });
+        return !w.config.yaxis[index].show || !w.config.yaxis[index].showForNullSeries && coreUtils.isSeriesNull(index) && allCollapsed;
       } // get the label color for y-axis
       // realIndex is the actual series index, while i is the tick Index
 
@@ -9367,7 +9744,9 @@
 
                 for (var ci = 0; ci < w.globals.series.length; ci++) {
                   if (dataFormat.isFormatXY()) {
-                    columns.push(series[ci].data[i].y);
+                    var _series$ci$data$i;
+
+                    columns.push((_series$ci$data$i = series[ci].data[i]) === null || _series$ci$data$i === void 0 ? void 0 : _series$ci$data$i.y);
                   } else {
                     columns.push(gSeries[ci][i]);
                   }
@@ -9404,6 +9783,41 @@
           }
         };
 
+        var handleUnequalXValues = function handleUnequalXValues() {
+          var categories = new Set();
+          var data = {};
+          series.forEach(function (s, sI) {
+            s === null || s === void 0 ? void 0 : s.data.forEach(function (dataItem) {
+              var cat, value;
+
+              if (dataFormat.isFormatXY()) {
+                cat = dataItem.x;
+                value = dataItem.y;
+              } else if (dataFormat.isFormat2DArray()) {
+                cat = dataItem[0];
+                value = dataItem[1];
+              } else {
+                return;
+              }
+
+              if (!data[cat]) {
+                data[cat] = Array(series.length).fill('');
+              }
+
+              data[cat][sI] = value;
+              categories.add(cat);
+            });
+          });
+
+          if (columns.length) {
+            rows.push(columns.join(columnDelimiter));
+          }
+
+          Array.from(categories).sort().forEach(function (cat) {
+            rows.push([isTimeStamp(cat) && w.config.xaxis.type === 'datetime' ? w.config.chart.toolbar.export.csv.dateFormatter(cat) : Utils$1.isNumber(cat) ? cat : cat.split(columnDelimiter).join(''), data[cat].join(columnDelimiter)]);
+          });
+        };
+
         columns.push(w.config.chart.toolbar.export.csv.headerCategory);
 
         if (w.config.chart.type === 'boxPlot') {
@@ -9422,7 +9836,7 @@
           columns.push('maximum');
         } else {
           series.map(function (s, sI) {
-            var sname = s.name ? s.name : "series-".concat(sI);
+            var sname = (s.name ? s.name : "series-".concat(sI)) + '';
 
             if (w.globals.axisCharts) {
               columns.push(sname.split(columnDelimiter).join('') ? sname.split(columnDelimiter).join('') : "series-".concat(sI));
@@ -9435,16 +9849,21 @@
           rows.push(columns.join(columnDelimiter));
         }
 
-        series.map(function (s, sI) {
-          if (w.globals.axisCharts) {
-            handleAxisRowsColumns(s, sI);
-          } else {
-            columns = [];
-            columns.push(w.globals.labels[sI].split(columnDelimiter).join(''));
-            columns.push(gSeries[sI]);
-            rows.push(columns.join(columnDelimiter));
-          }
-        });
+        if (!w.globals.allSeriesHasEqualX && w.globals.axisCharts && !w.config.xaxis.categories.length && !w.config.labels.length) {
+          handleUnequalXValues();
+        } else {
+          series.map(function (s, sI) {
+            if (w.globals.axisCharts) {
+              handleAxisRowsColumns(s, sI);
+            } else {
+              columns = [];
+              columns.push(w.globals.labels[sI].split(columnDelimiter).join(''));
+              columns.push(gSeries[sI]);
+              rows.push(columns.join(columnDelimiter));
+            }
+          });
+        }
+
         result += rows.join(lineDelimiter);
         this.triggerDownload('data:text/csv; charset=utf-8,' + encodeURIComponent(universalBOM + result), fileName ? fileName : w.config.chart.toolbar.export.csv.filename, '.csv');
       }
@@ -9630,7 +10049,7 @@
 
         if (isXNumeric) {
           var len = dataPoints > 1 ? dataPoints - 1 : dataPoints;
-          colWidth = w.globals.gridWidth / len;
+          colWidth = w.globals.gridWidth / Math.min(len, labelsLen - 1);
           xPos = xPos + colWidthCb(0, colWidth) / 2 + w.config.xaxis.labels.offsetX;
         } else {
           colWidth = w.globals.gridWidth / dataPoints;
@@ -10012,7 +10431,7 @@
       var w = this.w;
       this.xaxisLabels = w.globals.labels.slice();
       this.axesUtils = new AxesUtils(ctx);
-      this.isRangeBar = w.globals.seriesRange.length;
+      this.isRangeBar = w.globals.seriesRange.length && w.globals.isBarHorizontal;
 
       if (w.globals.timescaleLabels.length > 0) {
         //  timescaleLabels labels are there
@@ -10095,7 +10514,7 @@
           }
         }
 
-        gl.dom.elGridRect = graphics.drawRect(-strokeSize / 2 - barWidthLeft - 2, -strokeSize / 2, gl.gridWidth + strokeSize + barWidthRight + barWidthLeft + 4, gl.gridHeight + strokeSize, 0, '#fff');
+        gl.dom.elGridRect = graphics.drawRect(-strokeSize - barWidthLeft - 2, -strokeSize * 2 - 2, gl.gridWidth + strokeSize + barWidthRight + barWidthLeft + 4, gl.gridHeight + strokeSize * 4 + 4, 0, '#fff');
         var markerSize = w.globals.markers.largestSize + 1;
         gl.dom.elGridRectMarker = graphics.drawRect(-markerSize * 2, -markerSize * 2, gl.gridWidth + markerSize * 4, gl.gridHeight + markerSize * 4, 0, '#fff');
         gl.dom.elGridRectMask.appendChild(gl.dom.elGridRect.node);
@@ -10425,29 +10844,38 @@
           this.elgridLinesV.hide();
           this.elgridLinesH.hide();
           this.elGridBorders.hide();
+        } // Draw the grid using ticks from the first unhidden Yaxis,
+        // or yaxis[0] is all hidden.
+
+
+        var gridAxisIndex = 0;
+
+        while (gridAxisIndex < w.globals.seriesYAxisMap.length && w.globals.ignoreYAxisIndexes.indexOf(gridAxisIndex) !== -1) {
+          gridAxisIndex++;
         }
 
-        var yTickAmount = w.globals.yAxisScale.length ? w.globals.yAxisScale[0].result.length - 1 : 5;
-
-        for (var i = 0; i < w.globals.series.length; i++) {
-          if (typeof w.globals.yAxisScale[i] !== 'undefined') {
-            yTickAmount = w.globals.yAxisScale[i].result.length - 1;
-          }
-
-          if (yTickAmount > 2) break;
+        if (gridAxisIndex === w.globals.seriesYAxisMap.length) {
+          gridAxisIndex = 0;
         }
 
+        var yTickAmount = w.globals.yAxisScale[gridAxisIndex].result.length - 1;
         var xCount;
 
         if (!w.globals.isBarHorizontal || this.isRangeBar) {
           xCount = this.xaxisLabels.length;
 
           if (this.isRangeBar) {
+            var _w$globals$yAxisScale, _w$globals$yAxisScale2, _w$globals$yAxisScale3;
+
             xCount--;
             yTickAmount = w.globals.labels.length;
 
             if (w.config.xaxis.tickAmount && w.config.xaxis.labels.formatter) {
               xCount = w.config.xaxis.tickAmount;
+            }
+
+            if (((_w$globals$yAxisScale = w.globals.yAxisScale) === null || _w$globals$yAxisScale === void 0 ? void 0 : (_w$globals$yAxisScale2 = _w$globals$yAxisScale[gridAxisIndex]) === null || _w$globals$yAxisScale2 === void 0 ? void 0 : (_w$globals$yAxisScale3 = _w$globals$yAxisScale2.result) === null || _w$globals$yAxisScale3 === void 0 ? void 0 : _w$globals$yAxisScale3.length) > 0 && w.config.xaxis.type !== 'datetime') {
+              xCount = w.globals.yAxisScale[gridAxisIndex].result.length - 1;
             }
           }
 
@@ -10504,7 +10932,7 @@
 
 
         if (w.config.grid.column.colors !== undefined && w.config.grid.column.colors.length > 0) {
-          var xc = !w.globals.isBarHorizontal && (w.config.xaxis.type === 'category' || w.config.xaxis.convertedCatToNumeric) ? xCount - 1 : xCount;
+          var xc = !w.globals.isBarHorizontal && w.config.xaxis.tickPlacement === 'on' && (w.config.xaxis.type === 'category' || w.config.xaxis.convertedCatToNumeric) ? xCount - 1 : xCount;
           var _x5 = w.globals.padHorizontal;
           var _y5 = 0;
 
@@ -10535,137 +10963,385 @@
     return Grid;
   }();
 
-  var Range$1 = /*#__PURE__*/function () {
-    function Range(ctx) {
-      _classCallCheck(this, Range);
+  var Scales = /*#__PURE__*/function () {
+    function Scales(ctx) {
+      _classCallCheck(this, Scales);
 
       this.ctx = ctx;
       this.w = ctx.w;
-    } // http://stackoverflow.com/questions/326679/choosing-an-attractive-linear-scale-for-a-graphs-y-axiss
+    } // http://stackoverflow.com/questions/326679/choosing-an-attractive-linear-scale-for-a-graphs-y-axis
     // This routine creates the Y axis values for a graph.
 
 
-    _createClass(Range, [{
+    _createClass(Scales, [{
       key: "niceScale",
       value: function niceScale(yMin, yMax) {
-        var ticks = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 10;
-        var index = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0;
-        var NO_MIN_MAX_PROVIDED = arguments.length > 4 ? arguments[4] : undefined;
-        var w = this.w; // Determine Range
+        var index = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
+        // Calculate Min amd Max graphical labels and graph
+        // increments.
+        //
+        // Output will be an array of the Y axis values that
+        // encompass the Y values.
+        var jsPrecision = 1e-11; // JS precision errors
 
-        var range = Math.abs(yMax - yMin);
-        ticks = this._adjustTicksForSmallRange(ticks, index, range);
+        var w = this.w;
+        var gl = w.globals;
+        var axisCnf;
+        var maxTicks;
+        var gotMin;
+        var gotMax;
+
+        if (gl.isBarHorizontal) {
+          axisCnf = w.config.xaxis; // The most ticks we can fit into the svg chart dimensions
+
+          maxTicks = Math.max((gl.svgWidth - 100) / 25, 2); // Guestimate
+        } else {
+          axisCnf = w.config.yaxis[index];
+          maxTicks = Math.max((gl.svgHeight - 100) / 15, 2);
+        }
+
+        gotMin = axisCnf.min !== undefined && axisCnf.min !== null;
+        gotMax = axisCnf.max !== undefined && axisCnf.min !== null;
+        var gotStepSize = axisCnf.stepSize !== undefined && axisCnf.stepSize !== null;
+        var gotTickAmount = axisCnf.tickAmount !== undefined && axisCnf.tickAmount !== null;
+        var ticks = gotTickAmount ? axisCnf.tickAmount : !axisCnf.forceNiceScale ? 10 : gl.niceScaleDefaultTicks[Math.min(Math.round(maxTicks / 2), gl.niceScaleDefaultTicks.length - 1)]; // In case we have a multi axis chart:
+        // Ensure subsequent series start with the same tickAmount as series[0],
+        // because the tick lines are drawn based on series[0]. This does not
+        // override user defined options for any series.
+
+        if (gl.isMultipleYAxis && !gotTickAmount && gl.multiAxisTickAmount > 0) {
+          ticks = gl.multiAxisTickAmount;
+          gotTickAmount = true;
+        }
 
         if (ticks === 'dataPoints') {
-          ticks = w.globals.dataPoints - 1;
+          ticks = gl.dataPoints - 1;
+        } else {
+          // Ensure ticks is an integer
+          ticks = Math.abs(Math.round(ticks));
         }
 
         if (yMin === Number.MIN_VALUE && yMax === 0 || !Utils$1.isNumber(yMin) && !Utils$1.isNumber(yMax) || yMin === Number.MIN_VALUE && yMax === -Number.MAX_VALUE) {
           // when all values are 0
           yMin = 0;
           yMax = ticks;
-          var linearScale = this.linearScale(yMin, yMax, ticks);
-          return linearScale;
+          gl.allSeriesCollapsed = false;
         }
 
         if (yMin > yMax) {
           // if somehow due to some wrong config, user sent max less than min,
           // adjust the min/max again
-          console.warn('axis.min cannot be greater than axis.max');
-          yMax = yMin + 0.1;
+          console.warn('axis.min cannot be greater than axis.max: swapping min and max');
+          var temp = yMax;
+          yMax = yMin;
+          yMin = temp;
         } else if (yMin === yMax) {
           // If yMin and yMax are identical, then
           // adjust the yMin and yMax values to actually
           // make a graph. Also avoids division by zero errors.
-          yMin = yMin === 0 ? 0 : yMin - 0.5; // some small value
+          yMin = yMin === 0 ? 0 : yMin - 1; // choose an integer in case yValueDecimals=0
 
-          yMax = yMax === 0 ? 2 : yMax + 0.5; // some small value
-        } // Calculate Min amd Max graphical labels and graph
-        // increments.  The number of ticks defaults to
-        // 10 which is the SUGGESTED value.  Any tick value
-        // entered is used as a suggested value which is
-        // adjusted to be a 'pretty' value.
-        //
-        // Output will be an array of the Y axis values that
-        // encompass the Y values.
-
+          yMax = yMax === 0 ? 2 : yMax + 1; // choose an integer in case yValueDecimals=0
+        }
 
         var result = [];
 
-        if (range < 1 && NO_MIN_MAX_PROVIDED && (w.config.chart.type === 'candlestick' || w.config.series[index].type === 'candlestick' || w.config.chart.type === 'boxPlot' || w.config.series[index].type === 'boxPlot' || w.globals.isRangeData)) {
-          /* fix https://github.com/apexcharts/apexcharts.js/issues/430 */
-          yMax = yMax * 1.01;
+        if (ticks < 1) {
+          ticks = 1;
         }
 
-        var tiks = ticks + 1; // Adjust ticks if needed
+        var tiks = ticks; // Determine Range
 
-        if (tiks < 2) {
-          tiks = 2;
-        } else if (tiks > 2) {
-          tiks -= 2;
-        } // Get raw step value
+        var range = Math.abs(yMax - yMin);
+
+        if (axisCnf.forceNiceScale) {
+          // Snap min or max to zero if close
+          var proximityRatio = 0.15;
+
+          if (!gotMin && yMin > 0 && yMin / range < proximityRatio) {
+            yMin = 0;
+            gotMin = true;
+          }
+
+          if (!gotMax && yMax < 0 && -yMax / range < proximityRatio) {
+            yMax = 0;
+            gotMax = true;
+          }
+
+          range = Math.abs(yMax - yMin);
+        } // Calculate a pretty step value based on ticks
+        // Initial stepSize
 
 
-        var tempStep = range / tiks; // Calculate pretty step value
+        var stepSize = range / tiks;
+        var niceStep = stepSize;
+        var mag = Math.floor(Math.log10(niceStep));
+        var magPow = Math.pow(10, mag); // ceil() is used below in conjunction with the values populating
+        // niceScaleAllowedMagMsd[][] to ensure that (niceStep * tiks)
+        // produces a range that doesn't clip data points after stretching
+        // the raw range out a little to match the prospective new range.
 
-        var mag = Math.floor(Utils$1.log10(tempStep));
-        var magPow = Math.pow(10, mag);
-        var magMsd = Math.round(tempStep / magPow);
+        var magMsd = Math.ceil(niceStep / magPow); // See globals.js for info on what niceScaleAllowedMagMsd does
 
-        if (magMsd < 1) {
-          magMsd = 1;
+        magMsd = gl.niceScaleAllowedMagMsd[gl.yValueDecimal === 0 ? 0 : 1][magMsd];
+        niceStep = magMsd * magPow; // Initial stepSize
+
+        stepSize = niceStep; // Get step value
+
+        if (gl.isBarHorizontal && axisCnf.stepSize && axisCnf.type !== 'datetime') {
+          stepSize = axisCnf.stepSize;
+          gotStepSize = true;
+        } else if (gotStepSize) {
+          stepSize = axisCnf.stepSize;
         }
 
-        var stepSize = magMsd * magPow; // build Y label array.
-        // Lower and upper bounds calculations
+        if (gotStepSize) {
+          if (axisCnf.forceNiceScale) {
+            // Check that given stepSize is sane with respect to the range.
+            //
+            // The user can, by setting forceNiceScale = true,
+            // define a stepSize that will be scaled to a useful value before
+            // it's checked for consistency.
+            //
+            // If, for example, the range = 4 and the user defined stepSize = 8
+            // (or 8000 or 0.0008, etc), then stepSize is inapplicable as
+            // it is. Reducing it to 0.8 will fit with 5 ticks.
+            //
+            var stepMag = Math.floor(Math.log10(stepSize));
+            stepSize *= Math.pow(10, mag - stepMag);
+          }
+        } // Start applying some rules
 
-        var lb = stepSize * Math.floor(yMin / stepSize);
-        var ub = stepSize * Math.ceil(yMax / stepSize); // Build array
 
-        var val = lb;
+        if (gotMin && gotMax) {
+          var crudeStep = range / tiks; // min and max (range) cannot be changed
 
-        if (NO_MIN_MAX_PROVIDED && range > 2) {
-          while (1) {
-            result.push(val);
-            val += stepSize;
+          if (gotTickAmount) {
+            if (gotStepSize) {
+              if (Utils$1.mod(range, stepSize) != 0) {
+                // stepSize conflicts with range
+                var gcdStep = Utils$1.getGCD(stepSize, crudeStep); // gcdStep is a multiple of range because crudeStep is a multiple.
+                // gcdStep is also a multiple of stepSize, so it partially honoured
+                // All three could be equal, which would be very nice
+                // if the computed stepSize generates too many ticks they will be
+                // reduced later, unless the number is prime, in which case,
+                // the chart will display all of them or just one (plus the X axis)
+                // depending on svg dimensions. Setting forceNiceScale: true will force
+                // the display of at least the default number of ticks.
 
-            if (val > ub) {
-              break;
+                if (crudeStep / gcdStep < 10) {
+                  stepSize = gcdStep;
+                } else {
+                  // stepSize conflicts and no reasonable adjustment, but must
+                  // honour tickAmount
+                  stepSize = crudeStep;
+                }
+              } else {
+                // stepSize fits
+                if (Utils$1.mod(stepSize, crudeStep) == 0) {
+                  // crudeStep is a multiple of stepSize, or vice versa
+                  // but we know that crudeStep will generate tickAmount ticks
+                  stepSize = crudeStep;
+                } else {
+                  // stepSize conflicts with tickAmount
+                  // if the user is setting up a multi-axis chart and wants
+                  // synced axis ticks then they should not define stepSize
+                  // or ensure there is no conflict between any of their options
+                  // on any axis.
+                  crudeStep = stepSize; // De-prioritizing ticks from now on
+
+                  gotTickAmount = false;
+                }
+              }
+            } else {
+              // no user stepSize, honour tickAmount
+              stepSize = crudeStep;
+            }
+          } else {
+            // default ticks in use, tiks can change
+            if (gotStepSize) {
+              if (Utils$1.mod(range, stepSize) == 0) {
+                // user stepSize fits
+                crudeStep = stepSize;
+              } else {
+                stepSize = crudeStep;
+              }
+            } else {
+              // no user stepSize
+              if (Utils$1.mod(range, stepSize) == 0) {
+                // generated nice stepSize fits
+                crudeStep = stepSize;
+              } else {
+                tiks = Math.ceil(range / stepSize);
+                crudeStep = range / tiks;
+
+                var _gcdStep = Utils$1.getGCD(range, stepSize);
+
+                if (range / _gcdStep < maxTicks) {
+                  crudeStep = _gcdStep;
+                }
+
+                stepSize = crudeStep;
+              }
             }
           }
 
-          return {
-            result: result,
-            niceMin: result[0],
-            niceMax: result[result.length - 1]
-          };
+          tiks = Math.round(range / stepSize);
         } else {
-          result = [];
-          var v = yMin;
-          result.push(v);
-          var valuesDivider = Math.abs(yMax - yMin) / ticks;
+          // Snap range to ticks
+          if (!gotMin && !gotMax) {
+            if (gotTickAmount) {
+              // Allow a half-stepSize shift if series doesn't cross the X axis
+              // to ensure graph doesn't clip. Not if it does cross, in order
+              // to keep the 0 aligned with a grid line in multi axis charts.
+              var shift = stepSize / (yMax - yMin > yMax ? 1 : 2);
+              var tMin = shift * Math.floor(yMin / shift);
 
-          for (var i = 0; i <= ticks; i++) {
-            v = v + valuesDivider;
-            result.push(v);
+              if (Math.abs(tMin - yMin) <= shift / 2) {
+                yMin = tMin;
+                yMax = yMin + stepSize * tiks;
+              } else {
+                yMax = shift * Math.ceil(yMax / shift);
+                yMin = yMax - stepSize * tiks;
+              }
+            } else {
+              yMin = stepSize * Math.floor(yMin / stepSize);
+              yMax = stepSize * Math.ceil(yMax / stepSize);
+            }
+          } else if (gotMax) {
+            if (gotTickAmount) {
+              yMin = yMax - stepSize * tiks;
+            } else {
+              var yMinPrev = yMin;
+              yMin = stepSize * Math.floor(yMin / stepSize);
+
+              if (Math.abs(yMax - yMin) / Utils$1.getGCD(range, stepSize) > maxTicks) {
+                // Use default ticks to compute yMin then shrinkwrap
+                yMin = yMax - stepSize * ticks;
+                yMin += stepSize * Math.floor((yMinPrev - yMin) / stepSize);
+              }
+            }
+          } else if (gotMin) {
+            if (gotTickAmount) {
+              yMax = yMin + stepSize * tiks;
+            } else {
+              yMax = stepSize * Math.ceil(yMax / stepSize);
+            }
           }
 
-          if (result[result.length - 2] >= yMax) {
-            result.pop();
-          }
+          range = Math.abs(yMax - yMin); // Final check and possible adjustment of stepSize to prevent
+          // overriding the user's min or max choice.
 
-          return {
-            result: result,
-            niceMin: result[0],
-            niceMax: result[result.length - 1]
-          };
+          stepSize = Utils$1.getGCD(range, stepSize);
+          tiks = Math.round(range / stepSize);
+        } // Shrinkwrap ticks to the range
+
+
+        if (!gotTickAmount && !(gotMin || gotMax)) {
+          tiks = Math.ceil((range - jsPrecision) / (stepSize + jsPrecision)); // No user tickAmount, or min or max, we are free to adjust to avoid a
+          // prime number. This helps when reducing ticks for small svg dimensions.
+
+          if (tiks > 16 && Utils$1.getPrimeFactors(tiks).length < 2) {
+            tiks++;
+          }
+        } // Record final tiks for use by other series that call niceScale().
+        // Note: some don't, like logarithmicScale(), etc.
+
+
+        if (gl.isMultipleYAxis && gl.multiAxisTickAmount == 0) {
+          gl.multiAxisTickAmount = tiks;
         }
+
+        if (tiks > maxTicks && (!(gotTickAmount || gotStepSize) || axisCnf.forceNiceScale)) {
+          // Reduce the number of ticks nicely if chart svg dimensions shrink too far.
+          // The reduced tick set should always be a subset of the full set.
+          //
+          // This following products of prime factors method works as follows:
+          // We compute the prime factors of the full tick count (tiks), then all the
+          // possible products of those factors in order from smallest to biggest,
+          // until we find a product P such that: tiks/P < maxTicks.
+          //
+          // Example:
+          // Computing products of the prime factors of 30.
+          //
+          //   tiks | pf  |  1     2     3      4      5      6  <-- compute order
+          //   --------------------------------------------------
+          //     30 |  5  |              5             5      5  <-- Multiply all
+          //        |  3  |        3            3      3      3  <-- primes in each
+          //        |  2  |  2                  2             2  <-- column = P
+          //   --------------------------------------------------
+          //                15    10     6      5      2      1  <-- tiks/P
+          //
+          //   tiks = 30 has prime factors [2, 3, 5]
+          //   The loop below computes the products [2,3,5,6,15,30].
+          //   The last product of P = 2*3*5 is skipped since 30/P = 1.
+          //   This yields tiks/P = [15,10,6,5,2,1], checked in order until
+          //   tiks/P < maxTicks.
+          //
+          //   Pros:
+          //      1) The ticks in the reduced set are always members of the
+          //         full set of ticks.
+          //   Cons:
+          //      1) None: if tiks is prime, we get all or one, nothing between, so
+          //      the worst case is to display all, which is the status quo. Really
+          //      only a problem visually for larger tick numbers, say, > 7.
+          //
+          var pf = Utils$1.getPrimeFactors(tiks);
+          var last = pf.length - 1;
+          var tt = tiks;
+
+          reduceLoop: for (var xFactors = 0; xFactors < last; xFactors++) {
+            for (var lowest = 0; lowest <= last - xFactors; lowest++) {
+              var stop = Math.min(lowest + xFactors, last);
+              var t = tt;
+              var div = 1;
+
+              for (var next = lowest; next <= stop; next++) {
+                div *= pf[next];
+              }
+
+              t /= div;
+
+              if (t < maxTicks) {
+                tt = t;
+                break reduceLoop;
+              }
+            }
+          }
+
+          if (tt === tiks) {
+            // Could not reduce ticks at all, go all in and display just the
+            // X axis and one tick.
+            stepSize = range;
+          } else {
+            stepSize = range / tt;
+          }
+        } // build Y label array.
+
+
+        var val = yMin - stepSize; // Ensure we don't under/over shoot due to JS precision errors.
+        // This also fixes (amongst others):
+        // https://github.com/apexcharts/apexcharts.js/issues/430
+
+        var err = stepSize * jsPrecision;
+
+        do {
+          val += stepSize;
+          result.push(Utils$1.stripNumber(val, 7));
+        } while (yMax - val > err);
+
+        return {
+          result: result,
+          niceMin: result[0],
+          niceMax: result[result.length - 1]
+        };
       }
     }, {
       key: "linearScale",
       value: function linearScale(yMin, yMax) {
         var ticks = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 10;
-        var index = arguments.length > 3 ? arguments[3] : undefined;
+        var index = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0;
+        var step = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
         var range = Math.abs(yMax - yMin);
         ticks = this._adjustTicksForSmallRange(ticks, index, range);
 
@@ -10673,10 +11349,12 @@
           ticks = this.w.globals.dataPoints - 1;
         }
 
-        var step = range / ticks;
+        if (!step) {
+          step = range / ticks;
+        }
 
         if (ticks === Number.MAX_VALUE) {
-          ticks = 10;
+          ticks = 5;
           step = 1;
         }
 
@@ -10774,32 +11452,23 @@
           gl.yAxisScale[index] = [];
         }
 
-        var diff = Math.abs(maxY - minY);
+        var range = Math.abs(maxY - minY);
 
-        if (y.logarithmic && diff <= 5) {
+        if (y.logarithmic && range <= 5) {
           gl.invalidLogScale = true;
         }
 
-        if (y.logarithmic && diff > 5) {
+        if (y.logarithmic && range > 5) {
           gl.allSeriesCollapsed = false;
-          gl.yAxisScale[index] = this.logarithmicScale(minY, maxY, y.logBase);
           gl.yAxisScale[index] = y.forceNiceScale ? this.logarithmicScaleNice(minY, maxY, y.logBase) : this.logarithmicScale(minY, maxY, y.logBase);
         } else {
           if (maxY === -Number.MAX_VALUE || !Utils$1.isNumber(maxY)) {
             // no data in the chart. Either all series collapsed or user passed a blank array
-            gl.yAxisScale[index] = this.linearScale(0, 5, 5);
+            gl.yAxisScale[index] = this.linearScale(0, 10, 10, index, cnf.yaxis[index].stepSize);
           } else {
             // there is some data. Turn off the allSeriesCollapsed flag
             gl.allSeriesCollapsed = false;
-
-            if ((y.min !== undefined || y.max !== undefined) && !y.forceNiceScale) {
-              // fix https://github.com/apexcharts/apexcharts.js/issues/492
-              gl.yAxisScale[index] = this.linearScale(minY, maxY, y.tickAmount, index);
-            } else {
-              var noMinMaxProvided = cnf.yaxis[index].max === undefined && cnf.yaxis[index].min === undefined || cnf.yaxis[index].forceNiceScale;
-              gl.yAxisScale[index] = this.niceScale(minY, maxY, y.tickAmount ? y.tickAmount : diff < 5 && diff > 1 ? diff + 1 : 5, index, // fix https://github.com/apexcharts/apexcharts.js/issues/397
-              noMinMaxProvided);
-            }
+            gl.yAxisScale[index] = this.niceScale(minY, maxY, index);
           }
         }
       }
@@ -10808,14 +11477,13 @@
       value: function setXScale(minX, maxX) {
         var w = this.w;
         var gl = w.globals;
-        var x = w.config.xaxis;
         var diff = Math.abs(maxX - minX);
 
         if (maxX === -Number.MAX_VALUE || !Utils$1.isNumber(maxX)) {
           // no data in the chart. Either all series collapsed or user passed a blank array
-          gl.xAxisScale = this.linearScale(0, 5, 5);
+          gl.xAxisScale = this.linearScale(0, 10, 10);
         } else {
-          gl.xAxisScale = this.linearScale(minX, maxX, x.tickAmount ? x.tickAmount : diff < 5 && diff > 1 ? diff + 1 : 5, 0);
+          gl.xAxisScale = this.linearScale(minX, maxX, w.config.xaxis.tickAmount ? w.config.xaxis.tickAmount : diff < 10 && diff > 1 ? diff + 1 : 10, 0, w.config.xaxis.stepSize);
         }
 
         return gl.xAxisScale;
@@ -10823,276 +11491,238 @@
     }, {
       key: "setMultipleYScales",
       value: function setMultipleYScales() {
-        var _this = this;
-
         var gl = this.w.globals;
         var cnf = this.w.config;
-        var minYArr = gl.minYArr.concat([]);
-        var maxYArr = gl.maxYArr.concat([]);
-        var scalesIndices = []; // here, we loop through the yaxis array and find the item which has "seriesName" property
-
-        cnf.yaxis.forEach(function (yaxe, i) {
-          var index = i;
-          cnf.series.forEach(function (s, si) {
-            // if seriesName matches and that series is not collapsed, we use that scale
-            // fix issue #1215
-            // proceed even if si is in gl.collapsedSeriesIndices
-            if (s.name === yaxe.seriesName) {
-              index = si;
-
-              if (i !== si) {
-                scalesIndices.push({
-                  index: si,
-                  similarIndex: i,
-                  alreadyExists: true
-                });
-              } else {
-                scalesIndices.push({
-                  index: si
-                });
-              }
-            }
-          });
-          var minY = minYArr[index];
-          var maxY = maxYArr[index];
-
-          _this.setYScaleForIndex(i, minY, maxY);
+        var minYArr = gl.minYArr;
+        var maxYArr = gl.maxYArr;
+        var axisSeriesMap = [];
+        var seriesYAxisReverseMap = [];
+        var unassignedSeriesIndices = [];
+        cnf.series.forEach(function (s, i) {
+          unassignedSeriesIndices.push(i);
+          seriesYAxisReverseMap.push(null);
         });
-        this.sameScaleInMultipleAxes(minYArr, maxYArr, scalesIndices);
+        var unassignedYAxisIndices = []; // here, we loop through the yaxis array and find the item which has "seriesName" property
+
+        cnf.yaxis.forEach(function (yaxe, yi) {
+          // Allow seriesName to be either a string (for backward compatibility),
+          // in which case, handle multiple yaxes referencing the same series.
+          // or an array of strings so that a yaxis can reference multiple series.
+          // Feature request #4237
+          if (yaxe.seriesName) {
+            var seriesNames = [];
+
+            if (Array.isArray(yaxe.seriesName)) {
+              seriesNames = yaxe.seriesName;
+            } else {
+              seriesNames.push(yaxe.seriesName);
+            }
+
+            axisSeriesMap[yi] = [];
+            seriesNames.forEach(function (name) {
+              cnf.series.forEach(function (s, si) {
+                // if seriesName matches we use that scale.
+                if (s.name === name) {
+                  axisSeriesMap[yi].push(si);
+                  seriesYAxisReverseMap[si] = yi;
+                  var remove = unassignedSeriesIndices.indexOf(si);
+                  unassignedSeriesIndices.splice(remove, 1);
+                }
+              });
+            });
+          } else {
+            unassignedYAxisIndices.push(yi);
+          }
+        }); // All series referenced directly by yaxes have been assigned to those axes.
+        // Any series so far unassigned will be assigned to any yaxes that have yet
+        // to reference series directly, one-for-one in order of appearance, with
+        // all left-over series assigned to the last such yaxis. This captures the
+        // default single and multiaxis config options which simply includes zero,
+        // one or as many yaxes as there are series but do not reference them by name.
+
+        var lastUnassignedYAxis;
+
+        for (var i = 0; i < unassignedYAxisIndices.length; i++) {
+          lastUnassignedYAxis = unassignedYAxisIndices[i];
+          axisSeriesMap[lastUnassignedYAxis] = [];
+
+          if (unassignedSeriesIndices) {
+            var si = unassignedSeriesIndices[0];
+            unassignedSeriesIndices.shift();
+            axisSeriesMap[lastUnassignedYAxis].push(si);
+            seriesYAxisReverseMap[si] = lastUnassignedYAxis;
+          } else {
+            break;
+          }
+        }
+
+        if (lastUnassignedYAxis) {
+          unassignedSeriesIndices.forEach(function (i) {
+            axisSeriesMap[lastUnassignedYAxis].push(i);
+            seriesYAxisReverseMap[i] = lastUnassignedYAxis;
+          });
+        }
+
+        gl.seriesYAxisMap = axisSeriesMap.map(function (x) {
+          return x;
+        });
+        gl.seriesYAxisReverseMap = seriesYAxisReverseMap.map(function (x) {
+          return x;
+        });
+        this.sameScaleInMultipleAxes(minYArr, maxYArr, axisSeriesMap);
       }
     }, {
       key: "sameScaleInMultipleAxes",
-      value: function sameScaleInMultipleAxes(minYArr, maxYArr, scalesIndices) {
-        var _this2 = this;
+      value: function sameScaleInMultipleAxes(minYArr, maxYArr, axisSeriesMap) {
+        var _this = this;
 
         var cnf = this.w.config;
-        var gl = this.w.globals; // we got the scalesIndices array in the above code, but we need to filter out the items which doesn't have same scales
+        var gl = this.w.globals; // The current config method to map multiple series to a y axis is to
+        // include one yaxis config per series but set each yaxis seriesName to the
+        // same series name. This relies on indexing equivalence to map series to
+        // an axis: series[n] => yaxis[n]. This needs to be retained for compatibility.
+        // But we introduce an alternative that explicitly configures yaxis elements
+        // with the series that will be referenced to them (seriesName: []). This
+        // only requires including the yaxis elements that will be seen on the chart.
+        // Old way:
+        // ya: s
+        // 0: 0
+        // 1: 1
+        // 2: 1
+        // 3: 1
+        // 4: 1
+        // Axes 0..4 are all scaled and all will be rendered unless the axes are
+        // show: false. If the chart is stacked, it's assumed that series 1..4 are
+        // the contributing series. This is not particularly intuitive.
+        // New way:
+        // ya: s
+        // 0: [0]
+        // 1: [1,2,3,4]
+        // If the chart is stacked, it can be assumed that any axis with multiple
+        // series is stacked.
+        // First things first, convert the old to the new.
 
-        var similarIndices = [];
-        scalesIndices.forEach(function (scale) {
-          if (scale.alreadyExists) {
-            if (typeof similarIndices[scale.index] === 'undefined') {
-              similarIndices[scale.index] = [];
+        var emptyAxes = [];
+        axisSeriesMap.forEach(function (axisSeries, ai) {
+          for (var si = ai + 1; si < axisSeriesMap.length; si++) {
+            var iter = axisSeries.values();
+
+            var _iterator = _createForOfIteratorHelper(iter),
+                _step;
+
+            try {
+              for (_iterator.s(); !(_step = _iterator.n()).done;) {
+                var val = _step.value;
+                var i = axisSeriesMap[si].indexOf(val);
+
+                if (i !== -1) {
+                  axisSeries.push(si); // add series index to current yaxis
+
+                  axisSeriesMap[si].splice(i, 1); // remove it from its old yaxis
+                }
+              }
+            } catch (err) {
+              _iterator.e(err);
+            } finally {
+              _iterator.f();
             }
 
-            similarIndices[scale.index].push(scale.index);
-            similarIndices[scale.index].push(scale.similarIndex);
+            if (axisSeriesMap[si].length < 1 && emptyAxes.indexOf(si) === -1) {
+              emptyAxes.push(si);
+            }
           }
         });
 
-        function intersect(a, b) {
-          return a.filter(function (value) {
-            return b.indexOf(value) !== -1;
-          });
-        }
+        for (var i = emptyAxes.length - 1; i >= 0; i--) {
+          axisSeriesMap.splice(emptyAxes[i], 1);
+        } // Compute min..max for each yaxis
+        // 
 
-        gl.yAxisSameScaleIndices = similarIndices;
-        similarIndices.forEach(function (si, i) {
-          similarIndices.forEach(function (sj, j) {
-            if (i !== j) {
-              if (intersect(si, sj).length > 0) {
-                similarIndices[i] = similarIndices[i].concat(similarIndices[j]);
-              }
-            }
-          });
-        }); // then, we remove duplicates from the similarScale array
 
-        var uniqueSimilarIndices = similarIndices.map(function (item) {
-          return item.filter(function (i, pos) {
-            return item.indexOf(i) === pos;
-          });
-        }); // sort further to remove whole duplicate arrays later
+        axisSeriesMap.forEach(function (axisSeries, ai) {
+          var minY = Number.MAX_VALUE;
+          var maxY = -Number.MAX_VALUE;
 
-        var sortedIndices = uniqueSimilarIndices.map(function (s) {
-          return s.sort();
-        }); // remove undefined items
-
-        similarIndices = similarIndices.filter(function (s) {
-          return !!s;
-        });
-        var indices = sortedIndices.slice();
-        var stringIndices = indices.map(function (ind) {
-          return JSON.stringify(ind);
-        });
-        indices = indices.filter(function (ind, p) {
-          return stringIndices.indexOf(JSON.stringify(ind)) === p;
-        });
-        var sameScaleMinYArr = [];
-        var sameScaleMaxYArr = [];
-        minYArr.forEach(function (minYValue, yi) {
-          indices.forEach(function (scale, i) {
-            // we compare only the yIndex which exists in the indices array
-            if (scale.indexOf(yi) > -1) {
-              if (typeof sameScaleMinYArr[i] === 'undefined') {
-                sameScaleMinYArr[i] = [];
-                sameScaleMaxYArr[i] = [];
-              }
-
-              sameScaleMinYArr[i].push({
-                key: yi,
-                value: minYValue
-              });
-              sameScaleMaxYArr[i].push({
-                key: yi,
-                value: maxYArr[yi]
-              });
-            }
-          });
-        });
-        var sameScaleMin = Array.apply(null, Array(indices.length)).map(Number.prototype.valueOf, Number.MIN_VALUE);
-        var sameScaleMax = Array.apply(null, Array(indices.length)).map(Number.prototype.valueOf, -Number.MAX_VALUE);
-        sameScaleMinYArr.forEach(function (s, i) {
-          s.forEach(function (sc, j) {
-            sameScaleMin[i] = Math.min(sc.value, sameScaleMin[i]);
-          });
-        });
-        sameScaleMaxYArr.forEach(function (s, i) {
-          s.forEach(function (sc, j) {
-            sameScaleMax[i] = Math.max(sc.value, sameScaleMax[i]);
-          });
-        });
-        minYArr.forEach(function (min, i) {
-          sameScaleMaxYArr.forEach(function (s, si) {
-            var minY = sameScaleMin[si];
-            var maxY = sameScaleMax[si];
-
-            if (cnf.chart.stacked) {
-              // for stacked charts, we need to add the values
-              maxY = 0;
-              s.forEach(function (ind, k) {
-                // fix incorrectly adjust y scale issue #1215
-                if (ind.value !== -Number.MAX_VALUE) {
-                  maxY += ind.value;
-                }
-
-                if (minY !== Number.MIN_VALUE) {
-                  minY += sameScaleMinYArr[si][k].value;
-                }
-              });
-            }
-
-            s.forEach(function (ind, k) {
-              if (s[k].key === i) {
-                if (cnf.yaxis[i].min !== undefined) {
-                  if (typeof cnf.yaxis[i].min === 'function') {
-                    minY = cnf.yaxis[i].min(gl.minY);
-                  } else {
-                    minY = cnf.yaxis[i].min;
-                  }
-                }
-
-                if (cnf.yaxis[i].max !== undefined) {
-                  if (typeof cnf.yaxis[i].max === 'function') {
-                    maxY = cnf.yaxis[i].max(gl.maxY);
-                  } else {
-                    maxY = cnf.yaxis[i].max;
-                  }
-                }
-
-                _this2.setYScaleForIndex(i, minY, maxY);
-              }
+          if (cnf.chart.stacked) {
+            var sumSeries = gl.seriesX[axisSeries[0]].map(function (x) {
+              return Number.MIN_VALUE;
             });
-          });
-        });
-      } // experimental feature which scales the y-axis to a min/max based on x-axis range
+            var posSeries = gl.seriesX[axisSeries[0]].map(function (x) {
+              return Number.MIN_VALUE;
+            });
+            var negSeries = gl.seriesX[axisSeries[0]].map(function (x) {
+              return Number.MIN_VALUE;
+            }); // The first series bound to the axis sets the type for stacked series
 
-    }, {
-      key: "autoScaleY",
-      value: function autoScaleY(ctx, yaxis, e) {
-        if (!ctx) {
-          ctx = this;
-        }
+            var seriesType = cnf.series[axisSeries[0]].type;
 
-        var w = ctx.w;
+            for (var _i = 0; _i < axisSeries.length; _i++) {
+              // Sum all series for this yaxis at each corresponding datapoint
+              // For bar and column charts we need to keep positive and negative
+              // values separate.
+              var si = axisSeries[_i];
 
-        if (w.globals.isMultipleYAxis || w.globals.collapsedSeries.length) {
-          // The autoScale option for multiple y-axis is turned off as it leads to buggy behavior.
-          // Also, when a series is collapsed, it results in incorrect behavior. Hence turned it off for that too - fixes apexcharts.js#795
-          console.warn('autoScaleYaxis is not supported in a multi-yaxis chart.');
-          return yaxis;
-        }
+              if (gl.collapsedSeriesIndices.indexOf(si) === -1) {
+                for (var j = 0; j < gl.series[si].length; j++) {
+                  var val = gl.series[si][j];
 
-        var seriesX = w.globals.seriesX[0];
-        var isStacked = w.config.chart.stacked;
-        yaxis.forEach(function (yaxe, yi) {
-          var firstXIndex = 0;
+                  if (val >= 0) {
+                    posSeries[j] += val;
+                  } else {
+                    negSeries[j] += val;
+                  }
 
-          for (var xi = 0; xi < seriesX.length; xi++) {
-            if (seriesX[xi] >= e.xaxis.min) {
-              firstXIndex = xi;
-              break;
+                  sumSeries[j] += val;
+                }
+              }
+            }
+
+            if (seriesType === 'bar') {
+              minY = Math.min.apply(null, negSeries);
+              maxY = Math.max.apply(null, posSeries);
+            } else {
+              minY = Math.min.apply(null, sumSeries);
+              maxY = Math.max.apply(null, sumSeries);
+            }
+          } else {
+            for (var _i2 = 0; _i2 < axisSeries.length; _i2++) {
+              minY = Math.min(minY, minYArr[axisSeries[_i2]]);
+            }
+
+            for (var _i3 = 0; _i3 < axisSeries.length; _i3++) {
+              maxY = Math.max(maxY, maxYArr[axisSeries[_i3]]);
             }
           }
 
-          var initialMin = w.globals.minYArr[yi];
-          var initialMax = w.globals.maxYArr[yi];
-          var min, max;
-          var stackedSer = w.globals.stackedSeriesTotals;
-          w.globals.series.forEach(function (serie, sI) {
-            var firstValue = serie[firstXIndex];
-
-            if (isStacked) {
-              firstValue = stackedSer[firstXIndex];
-              min = max = firstValue;
-              stackedSer.forEach(function (y, yI) {
-                if (seriesX[yI] <= e.xaxis.max && seriesX[yI] >= e.xaxis.min) {
-                  if (y > max && y !== null) max = y;
-                  if (serie[yI] < min && serie[yI] !== null) min = serie[yI];
-                }
-              });
+          if (cnf.yaxis[ai].min !== undefined) {
+            if (typeof cnf.yaxis[ai].min === 'function') {
+              minY = cnf.yaxis[ai].min(minY);
             } else {
-              min = max = firstValue;
-              serie.forEach(function (y, yI) {
-                if (seriesX[yI] <= e.xaxis.max && seriesX[yI] >= e.xaxis.min) {
-                  var valMin = y;
-                  var valMax = y;
-                  w.globals.series.forEach(function (wS, wSI) {
-                    if (y !== null) {
-                      valMin = Math.min(wS[yI], valMin);
-                      valMax = Math.max(wS[yI], valMax);
-                    }
-                  });
-                  if (valMax > max && valMax !== null) max = valMax;
-                  if (valMin < min && valMin !== null) min = valMin;
-                }
-              });
+              minY = cnf.yaxis[ai].min;
             }
+          }
 
-            if (min === undefined && max === undefined) {
-              min = initialMin;
-              max = initialMax;
-            }
-
-            min *= min < 0 ? 1.1 : 0.9;
-            max *= max < 0 ? 0.9 : 1.1;
-
-            if (min === 0 && max === 0) {
-              min = -1;
-              max = 1;
-            }
-
-            if (max < 0 && max < initialMax) {
-              max = initialMax;
-            }
-
-            if (min < 0 && min > initialMin) {
-              min = initialMin;
-            }
-
-            if (yaxis.length > 1) {
-              yaxis[sI].min = yaxe.min === undefined ? min : yaxe.min;
-              yaxis[sI].max = yaxe.max === undefined ? max : yaxe.max;
+          if (cnf.yaxis[ai].max !== undefined) {
+            if (typeof cnf.yaxis[ai].max === 'function') {
+              maxY = cnf.yaxis[ai].max(maxY);
             } else {
-              yaxis[0].min = yaxe.min === undefined ? min : yaxe.min;
-              yaxis[0].max = yaxe.max === undefined ? max : yaxe.max;
+              maxY = cnf.yaxis[ai].max;
             }
+          } // Set the scale for this yaxis
+
+
+          _this.setYScaleForIndex(ai, minY, maxY); // Set individual series min and max to nice values
+
+
+          axisSeries.forEach(function (si) {
+            minYArr[si] = gl.yAxisScale[ai].niceMin;
+            maxYArr[si] = gl.yAxisScale[ai].niceMax;
           });
         });
-        return yaxis;
       }
     }]);
 
-    return Range;
+    return Scales;
   }();
 
   /**
@@ -11107,7 +11737,7 @@
 
       this.ctx = ctx;
       this.w = ctx.w;
-      this.scales = new Range$1(ctx);
+      this.scales = new Scales(ctx);
     }
 
     _createClass(Range, [{
@@ -11119,17 +11749,43 @@
       }
     }, {
       key: "getMinYMaxY",
-      value: function getMinYMaxY(startingIndex) {
+      value: function getMinYMaxY(startingSeriesIndex) {
         var lowestY = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : Number.MAX_VALUE;
         var highestY = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : -Number.MAX_VALUE;
-        var len = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : null;
+        var endingSeriesIndex = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : null;
         var cnf = this.w.config;
         var gl = this.w.globals;
         var maxY = -Number.MAX_VALUE;
         var minY = Number.MIN_VALUE;
 
-        if (len === null) {
-          len = startingIndex + 1;
+        if (endingSeriesIndex === null) {
+          endingSeriesIndex = startingSeriesIndex + 1;
+        }
+
+        var firstXIndex = 0;
+        var lastXIndex = 0;
+        var seriesX = undefined;
+
+        if (gl.seriesX.length >= endingSeriesIndex) {
+          var _ref, _gl$brushSource;
+
+          seriesX = _toConsumableArray(new Set((_ref = []).concat.apply(_ref, _toConsumableArray(gl.seriesX.slice(startingSeriesIndex, endingSeriesIndex)))));
+          firstXIndex = 0;
+          lastXIndex = seriesX.length - 1; // Eventually brushSource will be set if the current chart is a target.
+          // That is, after the appropriate event causes us to update.
+
+          var brush = (_gl$brushSource = gl.brushSource) === null || _gl$brushSource === void 0 ? void 0 : _gl$brushSource.w.config.chart.brush;
+
+          if (cnf.chart.zoom.enabled && cnf.chart.zoom.autoScaleYaxis || brush !== null && brush !== void 0 && brush.enabled && brush !== null && brush !== void 0 && brush.autoScaleYaxis) {
+            // Scale the Y axis to the min..max within the zoomed X axis domain.
+            if (cnf.xaxis.min) {
+              for (firstXIndex = 0; firstXIndex < lastXIndex && seriesX[firstXIndex] <= cnf.xaxis.min; firstXIndex++) {}
+            }
+
+            if (cnf.xaxis.max) {
+              for (; lastXIndex > firstXIndex && seriesX[lastXIndex] >= cnf.xaxis.max; lastXIndex--) {}
+            }
+          }
         }
 
         var series = gl.series;
@@ -11147,8 +11803,9 @@
           seriesMax = gl.seriesRangeEnd;
         }
 
-        for (var i = startingIndex; i < len; i++) {
+        for (var i = startingSeriesIndex; i < endingSeriesIndex; i++) {
           gl.dataPoints = Math.max(gl.dataPoints, series[i].length);
+          var seriesType = cnf.series[i].type;
 
           if (gl.categoryLabels.length) {
             gl.dataPoints = gl.categoryLabels.filter(function (label) {
@@ -11156,7 +11813,19 @@
             }).length;
           }
 
-          for (var j = 0; j < gl.series[i].length; j++) {
+          if (gl.labels.length && cnf.xaxis.type !== 'datetime' && gl.series.reduce(function (a, c) {
+            return a + c.length;
+          }, 0) !== 0) {
+            // the condition cnf.xaxis.type !== 'datetime' fixes #3897 and #3905
+            gl.dataPoints = Math.max(gl.dataPoints, gl.labels.length);
+          }
+
+          if (!seriesX) {
+            firstXIndex = 0;
+            lastXIndex = gl.series[i].length;
+          }
+
+          for (var j = firstXIndex; j <= lastXIndex && j < gl.series[i].length; j++) {
             var val = series[i][j];
 
             if (val !== null && Utils$1.isNumber(val)) {
@@ -11168,30 +11837,38 @@
               if (typeof seriesMin[i][j] !== 'undefined') {
                 lowestY = Math.min(lowestY, seriesMin[i][j]);
                 highestY = Math.max(highestY, seriesMin[i][j]);
-              }
+              } // These series arrays are dual purpose:
+              // Array      : CandleO, CandleH, CandleM, CandleL, CandleC
+              // Candlestick: O        H                 L        C
+              // Boxplot    : Min      Q1       Median   Q3       Max
 
-              if (this.w.config.chart.type === 'candlestick' || this.w.config.chart.type === 'boxPlot' || this.w.config.chart.type !== 'rangeArea' || this.w.config.chart.type !== 'rangeBar') {
-                if (this.w.config.chart.type === 'candlestick' || this.w.config.chart.type === 'boxPlot') {
-                  if (typeof gl.seriesCandleC[i][j] !== 'undefined') {
-                    maxY = Math.max(maxY, gl.seriesCandleO[i][j]);
-                    maxY = Math.max(maxY, gl.seriesCandleH[i][j]);
-                    maxY = Math.max(maxY, gl.seriesCandleL[i][j]);
-                    maxY = Math.max(maxY, gl.seriesCandleC[i][j]);
 
-                    if (this.w.config.chart.type === 'boxPlot') {
-                      maxY = Math.max(maxY, gl.seriesCandleM[i][j]);
+              switch (seriesType) {
+                case 'candlestick':
+                  {
+                    if (typeof gl.seriesCandleC[i][j] !== 'undefined') {
+                      maxY = Math.max(maxY, gl.seriesCandleH[i][j]);
+                      lowestY = Math.min(lowestY, gl.seriesCandleL[i][j]);
                     }
                   }
-                } // there is a combo chart and the specified series in not either candlestick, boxplot, or rangeArea/rangeBar; find the max there
+
+                case 'boxPlot':
+                  {
+                    if (typeof gl.seriesCandleC[i][j] !== 'undefined') {
+                      maxY = Math.max(maxY, gl.seriesCandleC[i][j]);
+                      lowestY = Math.min(lowestY, gl.seriesCandleO[i][j]);
+                    }
+                  }
+              } // there is a combo chart and the specified series in not either
+              // candlestick, boxplot, or rangeArea/rangeBar; find the max there.
 
 
-                if (cnf.series[i].type && (cnf.series[i].type !== 'candlestick' || cnf.series[i].type !== 'boxPlot' || cnf.series[i].type !== 'rangeArea' || cnf.series[i].type !== 'rangeBar')) {
-                  maxY = Math.max(maxY, gl.series[i][j]);
-                  lowestY = Math.min(lowestY, gl.series[i][j]);
-                }
-
-                highestY = maxY;
+              if (seriesType && seriesType !== 'candlestick' && seriesType !== 'boxPlot' && seriesType !== 'rangeArea' && seriesType !== 'rangeBar') {
+                maxY = Math.max(maxY, gl.series[i][j]);
+                lowestY = Math.min(lowestY, gl.series[i][j]);
               }
+
+              highestY = maxY;
 
               if (gl.seriesGoals[i] && gl.seriesGoals[i][j] && Array.isArray(gl.seriesGoals[i][j])) {
                 gl.seriesGoals[i][j].forEach(function (g) {
@@ -11215,6 +11892,19 @@
               }
             } else {
               gl.hasNullValues = true;
+            }
+          }
+
+          if (seriesType === 'bar' || seriesType === 'column') {
+            if (minY < 0 && maxY < 0) {
+              // all negative values in a bar series, hence make the max to 0
+              maxY = 0;
+              highestY = Math.max(highestY, 0);
+            }
+
+            if (minY === Number.MIN_VALUE) {
+              minY = 0;
+              lowestY = Math.min(lowestY, 0);
             }
           }
         }
@@ -11249,52 +11939,48 @@
         gl.maxY = -Number.MAX_VALUE;
         gl.minY = Number.MIN_VALUE;
         var lowestYInAllSeries = Number.MAX_VALUE;
+        var minYMaxY;
 
         if (gl.isMultipleYAxis) {
           // we need to get minY and maxY for multiple y axis
+          lowestYInAllSeries = Number.MAX_VALUE;
+
           for (var i = 0; i < gl.series.length; i++) {
-            var minYMaxYArr = this.getMinYMaxY(i, lowestYInAllSeries, null, i + 1);
-            gl.minYArr.push(minYMaxYArr.minY);
-            gl.maxYArr.push(minYMaxYArr.maxY);
-            lowestYInAllSeries = minYMaxYArr.lowestY;
+            minYMaxY = this.getMinYMaxY(i);
+            gl.minYArr[i] = minYMaxY.lowestY;
+            gl.maxYArr[i] = minYMaxY.highestY;
+            lowestYInAllSeries = Math.min(lowestYInAllSeries, minYMaxY.lowestY);
           }
         } // and then, get the minY and maxY from all series
 
 
-        var minYMaxY = this.getMinYMaxY(0, lowestYInAllSeries, null, gl.series.length);
-        gl.minY = minYMaxY.minY;
-        gl.maxY = minYMaxY.maxY;
+        minYMaxY = this.getMinYMaxY(0, lowestYInAllSeries, null, gl.series.length);
+
+        if (cnf.chart.type === 'bar') {
+          gl.minY = minYMaxY.minY;
+          gl.maxY = minYMaxY.maxY;
+        } else {
+          gl.minY = minYMaxY.lowestY;
+          gl.maxY = minYMaxY.highestY;
+        }
+
         lowestYInAllSeries = minYMaxY.lowestY;
 
         if (cnf.chart.stacked) {
           this._setStackedMinMax();
         } // if the numbers are too big, reduce the range
-        // for eg, if number is between 100000-110000, putting 0 as the lowest value is not so good idea. So change the gl.minY for line/area/candlesticks/boxPlot
+        // for eg, if number is between 100000-110000, putting 0 as the lowest
+        // value is not so good idea. So change the gl.minY for
+        // line/area/scatter/candlesticks/boxPlot/vertical rangebar
 
 
-        if (cnf.chart.type === 'line' || cnf.chart.type === 'area' || cnf.chart.type === 'candlestick' || cnf.chart.type === 'boxPlot' || cnf.chart.type === 'rangeBar' && !gl.isBarHorizontal) {
+        if (cnf.chart.type === 'line' || cnf.chart.type === 'area' || cnf.chart.type === 'scatter' || cnf.chart.type === 'candlestick' || cnf.chart.type === 'boxPlot' || cnf.chart.type === 'rangeBar' && !gl.isBarHorizontal) {
           if (gl.minY === Number.MIN_VALUE && lowestYInAllSeries !== -Number.MAX_VALUE && lowestYInAllSeries !== gl.maxY // single value possibility
           ) {
-            var diff = gl.maxY - lowestYInAllSeries;
-
-            if (lowestYInAllSeries >= 0 && lowestYInAllSeries <= 10 || cnf.yaxis[0].min !== undefined || cnf.yaxis[0].max !== undefined) {
-              // if minY is already 0/low value, we don't want to go negatives here - so this check is essential.
-              diff = 0;
-            }
-
-            gl.minY = lowestYInAllSeries - diff * 5 / 100;
-            /* fix https://github.com/apexcharts/apexcharts.js/issues/614 */
-
-            /* fix https://github.com/apexcharts/apexcharts.js/issues/968 */
-
-            if (lowestYInAllSeries > 0 && gl.minY < 0) {
-              gl.minY = 0;
-            }
-            /* fix https://github.com/apexcharts/apexcharts.js/issues/426 */
-
-
-            gl.maxY = gl.maxY + diff * 5 / 100;
+            gl.minY = lowestYInAllSeries;
           }
+        } else {
+          gl.minY = minYMaxY.minY;
         }
 
         cnf.yaxis.forEach(function (yaxe, index) {
@@ -11337,16 +12023,18 @@
         if (gl.isMultipleYAxis) {
           this.scales.setMultipleYScales();
           gl.minY = lowestYInAllSeries;
-          gl.yAxisScale.forEach(function (scale, i) {
-            gl.minYArr[i] = scale.niceMin;
-            gl.maxYArr[i] = scale.niceMax;
-          });
         } else {
           this.scales.setYScaleForIndex(0, gl.minY, gl.maxY);
           gl.minY = gl.yAxisScale[0].niceMin;
           gl.maxY = gl.yAxisScale[0].niceMax;
           gl.minYArr[0] = gl.yAxisScale[0].niceMin;
           gl.maxYArr[0] = gl.yAxisScale[0].niceMax;
+          gl.seriesYAxisMap = [gl.series.map(function (x, i) {
+            return i;
+          })];
+          gl.seriesYAxisReverseMap = gl.series.map(function (x, i) {
+            return 0;
+          });
         }
 
         return {
@@ -11451,10 +12139,10 @@
               gl.xAxisScale = this.scales.setXScale(gl.minX, gl.maxX);
             }
           } else {
-            gl.xAxisScale = this.scales.linearScale(1, ticks, ticks);
+            gl.xAxisScale = this.scales.linearScale(0, ticks, ticks, 0, cnf.xaxis.stepSize);
 
             if (gl.noLabelsProvided && gl.labels.length > 0) {
-              gl.xAxisScale = this.scales.linearScale(1, gl.labels.length, ticks - 1); // this is the only place seriesX is again mutated
+              gl.xAxisScale = this.scales.linearScale(1, gl.labels.length, ticks - 1, 0, cnf.xaxis.stepSize); // this is the only place seriesX is again mutated
 
               gl.seriesX = gl.labels.slice();
             }
@@ -11601,20 +12289,26 @@
 
           indicesOfSeriesInGroup.forEach(function (i) {
             for (var j = 0; j < gl.series[gl.maxValsInArrayIndex].length; j++) {
+              var _this$w$config$series, _this$w$config$series2;
+
               if (typeof stackedPoss[group][j] === 'undefined') {
                 stackedPoss[group][j] = 0;
                 stackedNegs[group][j] = 0;
               }
 
-              if (gl.series[i][j] !== null && Utils$1.isNumber(gl.series[i][j])) {
-                gl.series[i][j] > 0 ? stackedPoss[group][j] += parseFloat(gl.series[i][j]) + 0.0001 : stackedNegs[group][j] += parseFloat(gl.series[i][j]);
+              var stackSeries = _this.w.config.chart.stacked && !gl.comboCharts || _this.w.config.chart.stacked && gl.comboCharts && (!_this.w.config.chart.stackOnlyBar || ((_this$w$config$series = _this.w.config.series) === null || _this$w$config$series === void 0 ? void 0 : (_this$w$config$series2 = _this$w$config$series[i]) === null || _this$w$config$series2 === void 0 ? void 0 : _this$w$config$series2.type) === 'bar');
+
+              if (stackSeries) {
+                if (gl.series[i][j] !== null && Utils$1.isNumber(gl.series[i][j])) {
+                  gl.series[i][j] > 0 ? stackedPoss[group][j] += parseFloat(gl.series[i][j]) + 0.0001 : stackedNegs[group][j] += parseFloat(gl.series[i][j]);
+                }
               }
             }
           });
         });
-        Object.entries(stackedPoss).forEach(function (_ref) {
-          var _ref2 = _slicedToArray(_ref, 1),
-              key = _ref2[0];
+        Object.entries(stackedPoss).forEach(function (_ref2) {
+          var _ref3 = _slicedToArray(_ref2, 1),
+              key = _ref3[0];
 
           stackedPoss[key].forEach(function (_, stgi) {
             gl.maxY = Math.max(gl.maxY, stackedPoss[key][stgi]);
@@ -11720,9 +12414,16 @@
               return Array.isArray(yColors) ? yColors[i] : yColors;
             };
 
+            var offsetY = w.config.yaxis[realIndex].labels.offsetY;
+
+            if (w.config.chart.type === 'heatmap') {
+              var divisor = w.globals.gridHeight / w.globals.series.length - 1;
+              offsetY = offsetY - divisor / 2;
+            }
+
             var label = graphics.drawText({
               x: xPad,
-              y: l + tickAmount / 10 + w.config.yaxis[realIndex].labels.offsetY + 1,
+              y: l + tickAmount / 10 + offsetY + 1,
               text: val,
               textAnchor: textAnchor,
               fontSize: yaxisFontSize,
@@ -12503,13 +13204,14 @@
     }, {
       key: "setDefaultColors",
       value: function setDefaultColors() {
-        var _this = this;
+        var _w$config$colors,
+            _this = this;
 
         var w = this.w;
         var utils = new Utils$1();
         w.globals.dom.elWrap.classList.add("apexcharts-theme-".concat(w.config.theme.mode));
 
-        if (w.config.colors === undefined) {
+        if (w.config.colors === undefined || ((_w$config$colors = w.config.colors) === null || _w$config$colors === void 0 ? void 0 : _w$config$colors.length) === 0) {
           w.globals.colors = this.predefined();
         } else {
           w.globals.colors = w.config.colors; // if user provided a function in colors, we need to eval here
@@ -13174,6 +13876,11 @@
         var labelPad = 10;
         var axesUtils = new AxesUtils(this.dCtx.ctx);
         w.config.yaxis.map(function (yaxe, index) {
+          var formatterArgs = {
+            seriesIndex: index,
+            dataPointIndex: -1,
+            w: w
+          };
           var yS = w.globals.yAxisScale[index];
           var yAxisMinWidth = 0;
           if (!axesUtils.isYAxisHidden(index) && yaxe.labels.show && yaxe.labels.minWidth !== undefined) yAxisMinWidth = yaxe.labels.minWidth;
@@ -13181,17 +13888,17 @@
           if (!axesUtils.isYAxisHidden(index) && yaxe.labels.show && yS.result.length) {
             var lbFormatter = w.globals.yLabelFormatters[index];
             var minV = yS.niceMin === Number.MIN_VALUE ? 0 : yS.niceMin;
-            var longestStr = String(minV).length > String(yS.niceMax).length ? minV : yS.niceMax; // the second parameter -1 is the index of tick which user can use in the formatter
+            var val = yS.result.reduce(function (acc, curr) {
+              var _String, _String2;
 
-            var val = lbFormatter(longestStr, {
-              seriesIndex: index,
-              dataPointIndex: -1,
-              w: w
-            });
+              return ((_String = String(lbFormatter(acc, formatterArgs))) === null || _String === void 0 ? void 0 : _String.length) > ((_String2 = String(lbFormatter(curr, formatterArgs))) === null || _String2 === void 0 ? void 0 : _String2.length) ? acc : curr;
+            }, minV);
+            val = lbFormatter(val, formatterArgs); // the second parameter -1 is the index of tick which user can use in the formatter
+
             var valArr = val; // if user has specified a custom formatter, and the result is null or empty, we need to discard the formatter and take the value as it is.
 
             if (typeof val === 'undefined' || val.length === 0) {
-              val = longestStr;
+              val = yS.niceMax;
             }
 
             if (w.globals.isBarHorizontal) {
@@ -13370,15 +14077,22 @@
 
           if (xDivision > gridWidth / 2) {
             xDivision = xDivision / 2;
-          }
+          } // Here, barWidth is assumed to be the width occupied by a group of bars.
+          // There will be one bar in the group for each series plotted.
+          // Note: This version of the following math is different to that over in
+          // Helpers.js. Don't assume they should be the same. Over there,
+          // xDivision is computed differently and it's used on different charts.
+          // They were the same, but the solution to
+          // https://github.com/apexcharts/apexcharts.js/issues/4178
+          // was to remove the division by seriesLen.
 
-          barWidth = xDivision / seriesLen * parseInt(w.config.plotOptions.bar.columnWidth, 10) / 100;
+
+          barWidth = xDivision * parseInt(w.config.plotOptions.bar.columnWidth, 10) / 100;
 
           if (barWidth < 1) {
             barWidth = 1;
           }
 
-          barWidth = barWidth / (seriesLen > 1 ? 1 : 1.5) + 5;
           w.globals.barPadForNumericAxis = barWidth;
         }
 
@@ -13475,14 +14189,19 @@
         var gl = w.globals;
         this.lgRect = this.dimHelpers.getLegendsRect();
 
-        if (this.isSparkline && (w.config.markers.discrete.length > 0 || w.config.markers.size > 0)) {
-          Object.entries(this.gridPad).forEach(function (_ref) {
-            var _ref2 = _slicedToArray(_ref, 2),
-                k = _ref2[0],
-                v = _ref2[1];
+        if (this.isSparkline) {
+          if (w.config.markers.discrete.length > 0 || w.config.markers.size > 0) {
+            Object.entries(this.gridPad).forEach(function (_ref) {
+              var _ref2 = _slicedToArray(_ref, 2),
+                  k = _ref2[0],
+                  v = _ref2[1];
 
-            _this.gridPad[k] = Math.max(v, _this.w.globals.markers.largestSize / 1.5);
-          });
+              _this.gridPad[k] = Math.max(v, _this.w.globals.markers.largestSize / 1.5);
+            });
+          }
+
+          this.gridPad.top = Math.max(w.config.stroke.width / 2, this.gridPad.top);
+          this.gridPad.bottom = Math.max(w.config.stroke.width / 2, this.gridPad.bottom);
         }
 
         if (gl.axisCharts) {
@@ -13724,9 +14443,17 @@
     _createClass(Helpers, [{
       key: "getLegendStyles",
       value: function getLegendStyles() {
+        var _this$lgCtx$ctx, _this$lgCtx$ctx$opts, _this$lgCtx$ctx$opts$;
+
         var stylesheet = document.createElement('style');
         stylesheet.setAttribute('type', 'text/css');
-        var text = "\t\n    \t\n      .apexcharts-legend {\t\n        display: flex;\t\n        overflow: auto;\t\n        padding: 0 10px;\t\n      }\t\n      .apexcharts-legend.apx-legend-position-bottom, .apexcharts-legend.apx-legend-position-top {\t\n        flex-wrap: wrap\t\n      }\t\n      .apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\t\n        flex-direction: column;\t\n        bottom: 0;\t\n      }\t\n      .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-left, .apexcharts-legend.apx-legend-position-top.apexcharts-align-left, .apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\t\n        justify-content: flex-start;\t\n      }\t\n      .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-center, .apexcharts-legend.apx-legend-position-top.apexcharts-align-center {\t\n        justify-content: center;  \t\n      }\t\n      .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-right, .apexcharts-legend.apx-legend-position-top.apexcharts-align-right {\t\n        justify-content: flex-end;\t\n      }\t\n      .apexcharts-legend-series {\t\n        cursor: pointer;\t\n        line-height: normal;\t\n      }\t\n      .apexcharts-legend.apx-legend-position-bottom .apexcharts-legend-series, .apexcharts-legend.apx-legend-position-top .apexcharts-legend-series{\t\n        display: flex;\t\n        align-items: center;\t\n      }\t\n      .apexcharts-legend-text {\t\n        position: relative;\t\n        font-size: 14px;\t\n      }\t\n      .apexcharts-legend-text *, .apexcharts-legend-marker * {\t\n        pointer-events: none;\t\n      }\t\n      .apexcharts-legend-marker {\t\n        position: relative;\t\n        display: inline-block;\t\n        cursor: pointer;\t\n        margin-right: 3px;\t\n        border-style: solid;\n      }\t\n      \t\n      .apexcharts-legend.apexcharts-align-right .apexcharts-legend-series, .apexcharts-legend.apexcharts-align-left .apexcharts-legend-series{\t\n        display: inline-block;\t\n      }\t\n      .apexcharts-legend-series.apexcharts-no-click {\t\n        cursor: auto;\t\n      }\t\n      .apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series {\t\n        display: none !important;\t\n      }\t\n      .apexcharts-inactive-legend {\t\n        opacity: 0.45;\t\n      }";
+        var nonce = ((_this$lgCtx$ctx = this.lgCtx.ctx) === null || _this$lgCtx$ctx === void 0 ? void 0 : (_this$lgCtx$ctx$opts = _this$lgCtx$ctx.opts) === null || _this$lgCtx$ctx$opts === void 0 ? void 0 : (_this$lgCtx$ctx$opts$ = _this$lgCtx$ctx$opts.chart) === null || _this$lgCtx$ctx$opts$ === void 0 ? void 0 : _this$lgCtx$ctx$opts$.nonce) || this.w.config.chart.nonce;
+
+        if (nonce) {
+          stylesheet.setAttribute('nonce', nonce);
+        }
+
+        var text = "\n      .apexcharts-legend {\n        display: flex;\n        overflow: auto;\n        padding: 0 10px;\n      }\n      .apexcharts-legend.apx-legend-position-bottom, .apexcharts-legend.apx-legend-position-top {\n        flex-wrap: wrap\n      }\n      .apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\n        flex-direction: column;\n        bottom: 0;\n      }\n      .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-left, .apexcharts-legend.apx-legend-position-top.apexcharts-align-left, .apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\n        justify-content: flex-start;\n      }\n      .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-center, .apexcharts-legend.apx-legend-position-top.apexcharts-align-center {\n        justify-content: center;\n      }\n      .apexcharts-legend.apx-legend-position-bottom.apexcharts-align-right, .apexcharts-legend.apx-legend-position-top.apexcharts-align-right {\n        justify-content: flex-end;\n      }\n      .apexcharts-legend-series {\n        cursor: pointer;\n        line-height: normal;\n      }\n      .apexcharts-legend.apx-legend-position-bottom .apexcharts-legend-series, .apexcharts-legend.apx-legend-position-top .apexcharts-legend-series{\n        display: flex;\n        align-items: center;\n      }\n      .apexcharts-legend-text {\n        position: relative;\n        font-size: 14px;\n      }\n      .apexcharts-legend-text *, .apexcharts-legend-marker * {\n        pointer-events: none;\n      }\n      .apexcharts-legend-marker {\n        position: relative;\n        display: inline-block;\n        cursor: pointer;\n        margin-right: 3px;\n        border-style: solid;\n      }\n\n      .apexcharts-legend.apexcharts-align-right .apexcharts-legend-series, .apexcharts-legend.apexcharts-align-left .apexcharts-legend-series{\n        display: inline-block;\n      }\n      .apexcharts-legend-series.apexcharts-no-click {\n        cursor: auto;\n      }\n      .apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series {\n        display: none !important;\n      }\n      .apexcharts-inactive-legend {\n        opacity: 0.45;\n      }";
         var rules = document.createTextNode(text);
         stylesheet.appendChild(rules);
         return stylesheet;
@@ -13815,11 +14542,9 @@
         var series = Utils$1.clone(w.config.series);
 
         if (w.globals.axisCharts) {
-          var shouldNotHideYAxis = false;
+          var yaxis = w.config.yaxis[w.globals.seriesYAxisReverseMap[realIndex]];
 
-          if (w.config.yaxis[realIndex] && w.config.yaxis[realIndex].show && w.config.yaxis[realIndex].showAlways) {
-            shouldNotHideYAxis = true;
-
+          if (yaxis && yaxis.show && yaxis.showAlways) {
             if (w.globals.ancillaryCollapsedSeriesIndices.indexOf(realIndex) < 0) {
               w.globals.ancillaryCollapsedSeries.push({
                 index: realIndex,
@@ -13828,17 +14553,17 @@
               });
               w.globals.ancillaryCollapsedSeriesIndices.push(realIndex);
             }
-          }
-
-          if (!shouldNotHideYAxis) {
-            w.globals.collapsedSeries.push({
-              index: realIndex,
-              data: series[realIndex].data.slice(),
-              type: seriesEl.parentNode.className.baseVal.split('-')[1]
-            });
-            w.globals.collapsedSeriesIndices.push(realIndex);
-            var removeIndexOfRising = w.globals.risingSeries.indexOf(realIndex);
-            w.globals.risingSeries.splice(removeIndexOfRising, 1);
+          } else {
+            if (w.globals.collapsedSeriesIndices.indexOf(realIndex) < 0) {
+              w.globals.collapsedSeries.push({
+                index: realIndex,
+                data: series[realIndex].data.slice(),
+                type: seriesEl.parentNode.className.baseVal.split('-')[1]
+              });
+              w.globals.collapsedSeriesIndices.push(realIndex);
+              var removeIndexOfRising = w.globals.risingSeries.indexOf(realIndex);
+              w.globals.risingSeries.splice(removeIndexOfRising, 1);
+            }
           }
         } else {
           w.globals.collapsedSeries.push({
@@ -13995,6 +14720,8 @@
         var isLegendInversed = w.config.legend.inverseOrder;
 
         for (var i = isLegendInversed ? legendNames.length - 1 : 0; isLegendInversed ? i >= 0 : i <= legendNames.length - 1; isLegendInversed ? i-- : i++) {
+          var _w$config$legend$labe;
+
           var text = legendFormatter(legendNames[i], {
             seriesIndex: i,
             w: w
@@ -14073,7 +14800,7 @@
           var elLegendText = document.createElement('span');
           elLegendText.classList.add('apexcharts-legend-text');
           elLegendText.innerHTML = Array.isArray(text) ? text.join(' ') : text;
-          var textColor = w.config.legend.labels.useSeriesColors ? w.globals.colors[i] : w.config.legend.labels.colors;
+          var textColor = w.config.legend.labels.useSeriesColors ? w.globals.colors[i] : Array.isArray(w.config.legend.labels.colors) ? (_w$config$legend$labe = w.config.legend.labels.colors) === null || _w$config$legend$labe === void 0 ? void 0 : _w$config$legend$labe[i] : w.config.legend.labels.colors;
 
           if (!textColor) {
             textColor = w.config.chart.foreColor;
@@ -14218,7 +14945,7 @@
       key: "onLegendHovered",
       value: function onLegendHovered(e) {
         var w = this.w;
-        var hoverOverLegend = e.target.classList.contains('apexcharts-legend-text') || e.target.classList.contains('apexcharts-legend-marker');
+        var hoverOverLegend = e.target.classList.contains('apexcharts-legend-series') || e.target.classList.contains('apexcharts-legend-text') || e.target.classList.contains('apexcharts-legend-marker');
 
         if (w.config.chart.type !== 'heatmap' && !this.isBarsDistributed) {
           if (!e.target.classList.contains('apexcharts-inactive-legend') && hoverOverLegend) {
@@ -14243,7 +14970,7 @@
         var w = this.w;
         if (w.config.legend.customLegendItems.length) return;
 
-        if (e.target.classList.contains('apexcharts-legend-text') || e.target.classList.contains('apexcharts-legend-marker')) {
+        if (e.target.classList.contains('apexcharts-legend-series') || e.target.classList.contains('apexcharts-legend-text') || e.target.classList.contains('apexcharts-legend-marker')) {
           var seriesCnt = parseInt(e.target.getAttribute('rel'), 10) - 1;
           var isHidden = e.target.getAttribute('data:collapsed') === 'true';
           var legendClick = this.w.config.chart.events.legendClick;
@@ -14447,11 +15174,6 @@
           name: 'exportCSV',
           title: this.localeValues.exportToCSV
         }];
-
-        if (!this.w.globals.allSeriesHasEqualX) {
-          // if it is a multi series, and all series have variable x values, export CSV won't work
-          menuItems.splice(2, 1);
-        }
 
         for (var i = 0; i < menuItems.length; i++) {
           this.elMenuItems.push(document.createElement('div'));
@@ -14662,13 +15384,6 @@
         };
         var yaxis = Utils$1.clone(w.globals.initialConfig.yaxis);
 
-        if (w.config.chart.zoom.autoScaleYaxis) {
-          var scale = new Range$1(this.ctx);
-          yaxis = scale.autoScaleY(this.ctx, yaxis, {
-            xaxis: xaxis
-          });
-        }
-
         if (!w.config.chart.group) {
           // if chart in a group, prevent yaxis update here
           // fix issue #650
@@ -14748,8 +15463,8 @@
         charts.forEach(function (ch) {
           var w = ch.w; // forget lastXAxis min/max as reset button isn't resetting the x-axis completely if zoomX is called before
 
-          w.globals.lastXAxis.min = undefined;
-          w.globals.lastXAxis.max = undefined;
+          w.globals.lastXAxis.min = w.globals.initialConfig.xaxis.min;
+          w.globals.lastXAxis.max = w.globals.initialConfig.xaxis.max;
           ch.updateHelpers.revertDefaultAxisMinMax();
 
           if (typeof w.config.chart.events.beforeResetZoom === 'function') {
@@ -14917,7 +15632,7 @@
         me.clientX = e.type === 'touchmove' || e.type === 'touchstart' ? e.touches[0].clientX : e.type === 'touchend' ? e.changedTouches[0].clientX : e.clientX;
         me.clientY = e.type === 'touchmove' || e.type === 'touchstart' ? e.touches[0].clientY : e.type === 'touchend' ? e.changedTouches[0].clientY : e.clientY;
 
-        if (e.type === 'mousedown' && e.which === 1) {
+        if ((e.type === 'mousedown' || e.type === 'touchmove') && e.which === 1) {
           var gridRectDim = me.gridRect.getBoundingClientRect();
           me.startX = me.clientX - gridRectDim.left;
           me.startY = me.clientY - gridRectDim.top;
@@ -14931,7 +15646,17 @@
           if (w.globals.panEnabled) {
             w.globals.selection = null;
 
-            if (me.w.globals.mousedown) {
+            if (me.w.globals.mousedown || e.type === 'touchmove') {
+              if (e.type === 'touchmove' && !me.w.globals.mousedown) {
+                console.warn('me.w.globals.mousedown ', me.w.globals.mousedown);
+
+                var _gridRectDim = me.gridRect.getBoundingClientRect();
+
+                me.startX = me.clientX - _gridRectDim.left;
+                me.startY = me.clientY - _gridRectDim.top;
+                me.w.globals.mousedown = true;
+              }
+
               me.panDragging({
                 context: me,
                 zoomtype: zoomtype,
@@ -14939,6 +15664,17 @@
               });
             }
           } else {
+            if (e.type === 'touchmove') {
+              if (!me.w.globals.mousedown) {
+                var _gridRectDim2 = me.gridRect.getBoundingClientRect();
+
+                me.startX = me.clientX - _gridRectDim2.left;
+                me.startY = me.clientY - _gridRectDim2.top;
+              }
+
+              me.w.globals.mousedown = true;
+            }
+
             if (me.w.globals.mousedown && w.globals.zoomEnabled || me.w.globals.mousedown && w.globals.selectionEnabled) {
               me.selection = me.selectionDrawing({
                 context: me,
@@ -14950,12 +15686,12 @@
 
         if (e.type === 'mouseup' || e.type === 'touchend' || e.type === 'mouseleave') {
           // we will be calling getBoundingClientRect on each mousedown/mousemove/mouseup
-          var _gridRectDim = me.gridRect.getBoundingClientRect();
+          var _gridRectDim3 = me.gridRect.getBoundingClientRect();
 
           if (me.w.globals.mousedown) {
             // user released the drag, now do all the calculations
-            me.endX = me.clientX - _gridRectDim.left;
-            me.endY = me.clientY - _gridRectDim.top;
+            me.endX = me.clientX - _gridRectDim3.left;
+            me.endY = me.clientY - _gridRectDim3.top;
             me.dragX = Math.abs(me.endX - me.startX);
             me.dragY = Math.abs(me.endY - me.startY);
 
@@ -15016,6 +15752,14 @@
             if (w.config.chart.selection.xaxis.min !== undefined && w.config.chart.selection.xaxis.max !== undefined) {
               var x = (w.config.chart.selection.xaxis.min - w.globals.minX) / xyRatios.xRatio;
               var width = w.globals.gridWidth - (w.globals.maxX - w.config.chart.selection.xaxis.max) / xyRatios.xRatio - x;
+
+              if (w.globals.isRangeBar) {
+                // rangebars put datetime data in y axis
+                x = // calculation: (selection left time - chart left time) / milliseconds per pixel = selection X value in pixels
+                (w.config.chart.selection.xaxis.min - w.globals.yAxisScale[0].niceMin) / xyRatios.invertedYRatio;
+                width = (w.config.chart.selection.xaxis.max - w.config.chart.selection.xaxis.min) / xyRatios.invertedYRatio;
+              }
+
               var selectionRect = {
                 x: x,
                 y: 0,
@@ -15206,10 +15950,23 @@
             var gridRectDim = _this3.gridRect.getBoundingClientRect();
 
             var selectionRect = selRect.node.getBoundingClientRect();
-            var minX = w.globals.xAxisScale.niceMin + (selectionRect.left - gridRectDim.left) * xyRatios.xRatio;
-            var maxX = w.globals.xAxisScale.niceMin + (selectionRect.right - gridRectDim.left) * xyRatios.xRatio;
-            var minY = w.globals.yAxisScale[0].niceMin + (gridRectDim.bottom - selectionRect.bottom) * xyRatios.yRatio[0];
-            var maxY = w.globals.yAxisScale[0].niceMax - (selectionRect.top - gridRectDim.top) * xyRatios.yRatio[0];
+            var minX, maxX, minY, maxY;
+
+            if (!w.globals.isRangeBar) {
+              // original code is in the IF. rangeBar exception is in the ELSE.
+              minX = w.globals.xAxisScale.niceMin + (selectionRect.left - gridRectDim.left) * xyRatios.xRatio;
+              maxX = w.globals.xAxisScale.niceMin + (selectionRect.right - gridRectDim.left) * xyRatios.xRatio;
+              minY = w.globals.yAxisScale[0].niceMin + (gridRectDim.bottom - selectionRect.bottom) * xyRatios.yRatio[0];
+              maxY = w.globals.yAxisScale[0].niceMax - (selectionRect.top - gridRectDim.top) * xyRatios.yRatio[0];
+            } else {
+              // rangeBars use x as the category, and y as the datetime data. // find data in y axis and use Y ratio
+              minX = w.globals.yAxisScale[0].niceMin + (selectionRect.left - gridRectDim.left) * xyRatios.invertedYRatio;
+              maxX = w.globals.yAxisScale[0].niceMin + (selectionRect.right - gridRectDim.left) * xyRatios.invertedYRatio;
+              minY = 0; // there is no y min/max with rangebars (it uses categories, not numeric data), so use dummy values
+
+              maxY = 1;
+            }
+
             var xyAxis = {
               xaxis: {
                 min: minX,
@@ -15300,13 +16057,6 @@
               yaxis.forEach(function (yaxe, index) {
                 yaxis[index].min = yLowestValue[index];
                 yaxis[index].max = yHighestValue[index];
-              });
-            }
-
-            if (w.config.chart.zoom.autoScaleYaxis) {
-              var scale = new Range$1(me.ctx);
-              yaxis = scale.autoScaleY(me.ctx, yaxis, {
-                xaxis: xaxis
               });
             }
 
@@ -15452,19 +16202,6 @@
             xHighestValue = maxX;
           }
         }
-
-        var xaxis = {
-          min: xLowestValue,
-          max: xHighestValue
-        };
-
-        if (w.config.chart.zoom.autoScaleYaxis) {
-          var scale = new Range$1(this.ctx);
-          yaxis = scale.autoScaleY(this.ctx, yaxis, {
-            xaxis: xaxis
-          });
-        }
-
         var options = {
           xaxis: {
             min: xLowestValue,
@@ -15571,21 +16308,12 @@
 
         var capturedSeries = null;
         var closest = null;
-        var seriesXValArr = [];
-        var seriesYValArr = []; //add extra values to show markers for the first points. Included both axes to avoid incorrect positioning of the marker
-
-        w.globals.seriesXvalues.forEach(function (value) {
-          seriesXValArr.push([value[0] + 0.000001].concat(value));
-        });
-        w.globals.seriesYvalues.forEach(function (value) {
-          seriesYValArr.push([value[0] + 0.000001].concat(value));
-        });
-        seriesXValArr = seriesXValArr.map(function (seriesXVal) {
+        var seriesXValArr = w.globals.seriesXvalues.map(function (seriesXVal) {
           return seriesXVal.filter(function (s) {
             return Utils$1.isNumber(s);
           });
         });
-        seriesYValArr = seriesYValArr.map(function (seriesYVal) {
+        var seriesYValArr = w.globals.seriesYvalues.map(function (seriesYVal) {
           return seriesYVal.filter(function (s) {
             return Utils$1.isNumber(s);
           });
@@ -15647,7 +16375,7 @@
           arrX.forEach(function (x, iX) {
             var newDiff = Math.abs(hoverX - x);
 
-            if (newDiff < diffX) {
+            if (newDiff <= diffX) {
               diffX = newDiff;
               j = iX;
             }
@@ -15662,7 +16390,7 @@
           Yarrays.forEach(function (arrY, iAY) {
             var newDiff = Math.abs(hoverY - arrY[j]);
 
-            if (newDiff < diffY) {
+            if (newDiff <= diffY) {
               diffY = newDiff;
               currIndex = iAY;
             }
@@ -16235,6 +16963,19 @@
 
         if (shared && ttItemsChildren[0]) {
           // hide when no Val or series collapsed
+          if (w.config.tooltip.hideEmptySeries) {
+            var ttItemMarker = ttItems[t].querySelector('.apexcharts-tooltip-marker');
+            var ttItemText = ttItems[t].querySelector('.apexcharts-tooltip-text');
+
+            if (parseFloat(val) == 0) {
+              ttItemMarker.style.display = 'none';
+              ttItemText.style.display = 'none';
+            } else {
+              ttItemMarker.style.display = 'block';
+              ttItemText.style.display = 'block';
+            }
+          }
+
           if (typeof val === 'undefined' || val === null || w.globals.ancillaryCollapsedSeriesIndices.indexOf(t) > -1 || w.globals.collapsedSeriesIndices.indexOf(t) > -1) {
             ttItemsChildren[0].parentNode.style.display = 'none';
           } else {
@@ -16944,7 +17685,9 @@
       _classCallCheck(this, Intersect);
 
       this.w = tooltipContext.w;
+      var w = this.w;
       this.ttCtx = tooltipContext;
+      this.isVerticalGroupedRangeBar = !w.globals.isBarHorizontal && w.config.chart.type === 'rangeBar' && w.config.plotOptions.bar.rangeBarGroupRows;
     } // a helper function to get an element's attribute value
 
 
@@ -17162,6 +17905,8 @@
     }, {
       key: "getBarTooltipXY",
       value: function getBarTooltipXY(_ref4) {
+        var _this = this;
+
         var e = _ref4.e,
             opt = _ref4.opt;
         var w = this.w;
@@ -17200,6 +17945,24 @@
           // }
 
 
+          var handleXForColumns = function handleXForColumns(x) {
+            if (w.globals.isXNumeric) {
+              x = cx - bw / 2;
+            } else {
+              if (_this.isVerticalGroupedRangeBar) {
+                x = cx + bw / 2;
+              } else {
+                x = cx - ttCtx.dataPointsDividedWidth + bw / 2;
+              }
+            }
+
+            return x;
+          };
+
+          var handleYForBars = function handleYForBars() {
+            return cy - ttCtx.dataPointsDividedHeight + bh / 2 - ttCtx.tooltipRect.ttHeight / 2;
+          };
+
           ttCtx.tooltipLabels.drawSeriesTexts({
             ttItems: opt.ttItems,
             i: i,
@@ -17213,14 +17976,9 @@
           if (w.config.tooltip.followCursor) {
             if (w.globals.isBarHorizontal) {
               x = clientX - seriesBound.left + 15;
-              y = cy - ttCtx.dataPointsDividedHeight + bh / 2 - ttCtx.tooltipRect.ttHeight / 2;
+              y = handleYForBars();
             } else {
-              if (w.globals.isXNumeric) {
-                x = cx - bw / 2;
-              } else {
-                x = cx - ttCtx.dataPointsDividedWidth + bw / 2;
-              }
-
+              x = handleXForColumns(x);
               y = e.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight / 2 - 15;
             }
           } else {
@@ -17231,15 +17989,9 @@
                 x = cx - ttCtx.tooltipRect.ttWidth;
               }
 
-              y = cy - ttCtx.dataPointsDividedHeight + bh / 2 - ttCtx.tooltipRect.ttHeight / 2;
+              y = handleYForBars();
             } else {
-              // if columns
-              if (w.globals.isXNumeric) {
-                x = cx - bw / 2;
-              } else {
-                x = cx - ttCtx.dataPointsDividedWidth + bw / 2;
-              }
-
+              x = handleXForColumns(x);
               y = cy; // - ttCtx.tooltipRect.ttHeight / 2 + 10
             }
           }
@@ -17314,17 +18066,10 @@
         var w = this.w;
         var ttCtx = this.ttCtx;
 
-        var _loop = function _loop(i) {
+        for (var i = 0; i < w.config.yaxis.length; i++) {
           var isRight = w.config.yaxis[i].opposite || w.config.yaxis[i].crosshairs.opposite;
           ttCtx.yaxisOffX = isRight ? w.globals.gridWidth + 1 : 1;
           var tooltipCssClass = isRight ? "apexcharts-yaxistooltip apexcharts-yaxistooltip-".concat(i, " apexcharts-yaxistooltip-right") : "apexcharts-yaxistooltip apexcharts-yaxistooltip-".concat(i, " apexcharts-yaxistooltip-left");
-          w.globals.yAxisSameScaleIndices.map(function (samescales, ssi) {
-            samescales.map(function (s, si) {
-              if (si === i) {
-                tooltipCssClass += w.config.yaxis[si].show ? " " : " apexcharts-yaxistooltip-hidden";
-              }
-            });
-          });
           var renderTo = w.globals.dom.elWrap;
           var yaxisTooltip = w.globals.dom.baseEl.querySelector(".apexcharts-yaxistooltip apexcharts-yaxistooltip-".concat(i));
 
@@ -17337,10 +18082,6 @@
             ttCtx.yaxisTooltipText[i].classList.add('apexcharts-yaxistooltip-text');
             ttCtx.yaxisTooltip.appendChild(ttCtx.yaxisTooltipText[i]);
           }
-        };
-
-        for (var i = 0; i < w.config.yaxis.length; i++) {
-          _loop(i);
         }
       }
       /**
@@ -18268,6 +19009,7 @@
             series = opts.series,
             barHeight = opts.barHeight,
             barWidth = opts.barWidth,
+            barXPosition = opts.barXPosition,
             barYPosition = opts.barYPosition,
             visibleSeries = opts.visibleSeries,
             renderedPath = opts.renderedPath;
@@ -18294,6 +19036,11 @@
         if (typeof barYPosition !== 'undefined' && this.barCtx.isRangeBar) {
           bcy = barYPosition;
           dataLabelsY = barYPosition;
+        }
+
+        if (typeof barXPosition !== 'undefined' && this.barCtx.isVerticalGroupedRangeBar) {
+          bcx = barXPosition;
+          dataLabelsX = barXPosition;
         }
 
         var offX = dataLabelsConfig.offsetX;
@@ -18361,6 +19108,8 @@
           totalDataLabels = this.drawTotalDataLabels({
             x: dataLabelsPos.totalDataLabelsX,
             y: dataLabelsPos.totalDataLabelsY,
+            barWidth: barWidth,
+            barHeight: barHeight,
             realIndex: realIndex,
             textAnchor: dataLabelsPos.totalDataLabelsAnchor,
             val: this.getStackedTotalDataLabel({
@@ -18408,6 +19157,7 @@
             barWidth = opts.barWidth,
             barHeight = opts.barHeight,
             textRects = opts.textRects,
+            dataLabelsX = opts.dataLabelsX,
             dataLabelsY = opts.dataLabelsY,
             dataLabelsConfig = opts.dataLabelsConfig,
             barDataLabelsConfig = opts.barDataLabelsConfig,
@@ -18415,19 +19165,33 @@
             strokeWidth = opts.strokeWidth,
             offX = opts.offX,
             offY = opts.offY;
-        var dataLabelsX;
         var totalDataLabelsY;
         var totalDataLabelsX;
         var totalDataLabelsAnchor = 'middle';
         barHeight = Math.abs(barHeight);
         var vertical = w.config.plotOptions.bar.dataLabels.orientation === 'vertical';
+
+        var _this$barCtx$barHelpe = this.barCtx.barHelpers.getZeroValueEncounters({
+          i: i,
+          j: j
+        }),
+            zeroEncounters = _this$barCtx$barHelpe.zeroEncounters;
+
         bcx = bcx - strokeWidth / 2 + (groupIndex !== -1 ? groupIndex * barWidth : 0);
         var dataPointsDividedWidth = w.globals.gridWidth / w.globals.dataPoints;
 
-        if (w.globals.isXNumeric) {
-          dataLabelsX = bcx - barWidth / 2 + offX;
+        if (this.barCtx.isVerticalGroupedRangeBar) {
+          dataLabelsX = dataLabelsX + barWidth / 2;
         } else {
-          dataLabelsX = bcx - dataPointsDividedWidth + barWidth / 2 + offX;
+          if (w.globals.isXNumeric) {
+            dataLabelsX = bcx - barWidth / 2 + offX;
+          } else {
+            dataLabelsX = bcx - dataPointsDividedWidth + barWidth / 2 + offX;
+          }
+
+          if (zeroEncounters > 0 && w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
+            dataLabelsX = dataLabelsX - barWidth * zeroEncounters;
+          }
         }
 
         if (vertical) {
@@ -18447,7 +19211,7 @@
           case 'center':
             if (vertical) {
               if (valIsNegative) {
-                dataLabelsY = newY + barHeight / 2 + offY;
+                dataLabelsY = newY - barHeight / 2 + offY;
               } else {
                 dataLabelsY = newY + barHeight / 2 - offY;
               }
@@ -18464,7 +19228,7 @@
           case 'bottom':
             if (vertical) {
               if (valIsNegative) {
-                dataLabelsY = newY + barHeight + offY;
+                dataLabelsY = newY - barHeight + offY;
               } else {
                 dataLabelsY = newY + barHeight - offY;
               }
@@ -18744,16 +19508,19 @@
         var x = _ref3.x,
             y = _ref3.y,
             val = _ref3.val,
+            barWidth = _ref3.barWidth,
+            barHeight = _ref3.barHeight,
             realIndex = _ref3.realIndex,
             textAnchor = _ref3.textAnchor,
             barTotalDataLabelsConfig = _ref3.barTotalDataLabelsConfig;
+        var w = this.w;
         var graphics = new Graphics(this.barCtx.ctx);
         var totalDataLabelText;
 
         if (barTotalDataLabelsConfig.enabled && typeof x !== 'undefined' && typeof y !== 'undefined' && this.barCtx.lastActiveBarSerieIndex === realIndex) {
           totalDataLabelText = graphics.drawText({
-            x: x,
-            y: y,
+            x: x - (!w.globals.isBarHorizontal && w.globals.seriesGroups.length ? barWidth / w.globals.seriesGroups.length : 0),
+            y: y - (w.globals.isBarHorizontal && w.globals.seriesGroups.length ? barHeight / w.globals.seriesGroups.length : 0),
             foreColor: barTotalDataLabelsConfig.style.color,
             text: val,
             textAnchor: textAnchor,
@@ -18855,6 +19622,11 @@
           }
 
           zeroW = this.barCtx.baseLineInvertedY + w.globals.padHorizontal + (this.barCtx.isReversed ? w.globals.gridWidth : 0) - (this.barCtx.isReversed ? this.barCtx.baseLineInvertedY * 2 : 0);
+
+          if (this.barCtx.isFunnel) {
+            zeroW = w.globals.gridWidth / 2;
+          }
+
           y = (yDivision - barHeight * this.barCtx.seriesLen) / 2;
         } else {
           // width divided into equal parts
@@ -18864,21 +19636,17 @@
             xDivision = w.globals.gridWidth / w.globals.dataPoints;
           }
 
-          barWidth = xDivision / this.barCtx.seriesLen * parseInt(this.barCtx.barOptions.columnWidth, 10) / 100;
+          barWidth = xDivision / seriesLen * parseInt(this.barCtx.barOptions.columnWidth, 10) / 100;
 
           if (w.globals.isXNumeric) {
             // max barwidth should be equal to minXDiff to avoid overlap
             var xRatio = this.barCtx.xRatio;
 
-            if (w.config.xaxis.convertedCatToNumeric) {
-              xRatio = this.barCtx.initialXRatio;
-            }
-
             if (w.globals.minXDiff && w.globals.minXDiff !== 0.5 && w.globals.minXDiff / xRatio > 0) {
               xDivision = w.globals.minXDiff / xRatio;
             }
 
-            barWidth = xDivision / this.barCtx.seriesLen * parseInt(this.barCtx.barOptions.columnWidth, 10) / 100;
+            barWidth = xDivision / seriesLen * parseInt(this.barCtx.barOptions.columnWidth, 10) / 100;
 
             if (barWidth < 1) {
               barWidth = 1;
@@ -18893,6 +19661,8 @@
           x = w.globals.padHorizontal + (xDivision - barWidth * this.barCtx.seriesLen) / 2;
         }
 
+        w.globals.barHeight = barHeight;
+        w.globals.barWidth = barWidth;
         return {
           x: x,
           y: y,
@@ -18991,7 +19761,7 @@
           color: fillColor,
           value: series[i][j],
           fillConfig: (_w$config$series$i$da = w.config.series[i].data[j]) === null || _w$config$series$i$da === void 0 ? void 0 : _w$config$series$i$da.fill,
-          fillType: (_w$config$series$i$da2 = w.config.series[i].data[j]) !== null && _w$config$series$i$da2 !== void 0 && (_w$config$series$i$da3 = _w$config$series$i$da2.fill) !== null && _w$config$series$i$da3 !== void 0 && _w$config$series$i$da3.type ? (_w$config$series$i$da4 = w.config.series[i].data[j]) === null || _w$config$series$i$da4 === void 0 ? void 0 : _w$config$series$i$da4.fill.type : w.config.fill.type
+          fillType: (_w$config$series$i$da2 = w.config.series[i].data[j]) !== null && _w$config$series$i$da2 !== void 0 && (_w$config$series$i$da3 = _w$config$series$i$da2.fill) !== null && _w$config$series$i$da3 !== void 0 && _w$config$series$i$da3.type ? (_w$config$series$i$da4 = w.config.series[i].data[j]) === null || _w$config$series$i$da4 === void 0 ? void 0 : _w$config$series$i$da4.fill.type : Array.isArray(w.config.fill.type) ? w.config.fill.type[i] : w.config.fill.type
         });
         return pathFill;
       }
@@ -19001,7 +19771,7 @@
         var strokeWidth = 0;
         var w = this.w;
 
-        if (!this.barCtx.series[i][j]) {
+        if (typeof this.barCtx.series[i][j] === 'undefined' || this.barCtx.series[i][j] === null) {
           this.barCtx.isNullValue = true;
         } else {
           this.barCtx.isNullValue = false;
@@ -19316,6 +20086,54 @@
 
         return lineGroup;
       }
+    }, {
+      key: "drawBarShadow",
+      value: function drawBarShadow(_ref6) {
+        var prevPaths = _ref6.prevPaths,
+            currPaths = _ref6.currPaths,
+            color = _ref6.color;
+        var w = this.w;
+        var prevX2 = prevPaths.x,
+            prevX1 = prevPaths.x1,
+            prevY1 = prevPaths.barYPosition;
+        var currX2 = currPaths.x,
+            currX1 = currPaths.x1,
+            currY1 = currPaths.barYPosition;
+        var prevY2 = prevY1 + currPaths.barHeight;
+        var graphics = new Graphics(this.barCtx.ctx);
+        var utils = new Utils$1();
+        var shadowPath = graphics.move(prevX1, prevY2) + graphics.line(prevX2, prevY2) + graphics.line(currX2, currY1) + graphics.line(currX1, currY1) + graphics.line(prevX1, prevY2) + (w.config.plotOptions.bar.borderRadiusApplication === 'around' ? ' Z' : ' z');
+        return graphics.drawPath({
+          d: shadowPath,
+          fill: utils.shadeColor(0.5, Utils$1.rgb2hex(color)),
+          stroke: 'none',
+          strokeWidth: 0,
+          fillOpacity: 1,
+          classes: 'apexcharts-bar-shadows'
+        });
+      }
+    }, {
+      key: "getZeroValueEncounters",
+      value: function getZeroValueEncounters(_ref7) {
+        var i = _ref7.i,
+            j = _ref7.j;
+        var w = this.w;
+        var nonZeroColumns = 0;
+        var zeroEncounters = 0;
+        w.globals.seriesPercent.forEach(function (_s, _si) {
+          if (_s[j]) {
+            nonZeroColumns++;
+          }
+
+          if (_si < i && _s[j] === 0) {
+            zeroEncounters++;
+          }
+        });
+        return {
+          nonZeroColumns: nonZeroColumns,
+          zeroEncounters: zeroEncounters
+        };
+      }
     }]);
 
     return Helpers;
@@ -19339,11 +20157,12 @@
       this.strokeWidth = w.config.stroke.width;
       this.isNullValue = false;
       this.isRangeBar = w.globals.seriesRange.length && this.isHorizontal;
+      this.isVerticalGroupedRangeBar = !w.globals.isBarHorizontal && w.globals.seriesRange.length && w.config.plotOptions.bar.rangeBarGroupRows;
+      this.isFunnel = this.barOptions.isFunnel;
       this.xyRatios = xyRatios;
 
       if (this.xyRatios !== null) {
         this.xRatio = xyRatios.xRatio;
-        this.initialXRatio = xyRatios.initialXRatio;
         this.yRatio = xyRatios.yRatio;
         this.invertedXRatio = xyRatios.invertedXRatio;
         this.invertedYRatio = xyRatios.invertedYRatio;
@@ -19353,6 +20172,7 @@
 
       this.yaxisIndex = 0;
       this.seriesLen = 0;
+      this.pathArr = [];
       var ser = new Series(this.ctx);
       this.lastActiveBarSerieIndex = ser.getActiveConfigSeriesIndex('desc', ['bar', 'column']);
       var barSeriesIndices = ser.getBarSeriesIndices();
@@ -19388,7 +20208,7 @@
 
         if (w.config.dataLabels.enabled) {
           if (this.totalItems > this.barOptions.dataLabels.maxItems) {
-            console.warn('WARNING: DataLabels are enabled but there are too many to display. This may cause performance issue when rendering.');
+            console.warn('WARNING: DataLabels are enabled but there are too many to display. This may cause performance issue when rendering - ApexCharts');
           }
         }
 
@@ -19448,12 +20268,22 @@
             class: 'apexcharts-datalabels',
             'data:realIndex': realIndex
           });
-          var elGoalsMarkers = graphics.group({
-            class: 'apexcharts-bar-goals-markers',
-            style: "pointer-events: none"
+          w.globals.delayedElements.push({
+            el: elDataLabelsWrap.node
           });
+          elDataLabelsWrap.node.classList.add('apexcharts-element-hidden');
+          var elGoalsMarkers = graphics.group({
+            class: 'apexcharts-bar-goals-markers'
+          });
+          var elBarShadows = graphics.group({
+            class: 'apexcharts-bar-shadows'
+          });
+          w.globals.delayedElements.push({
+            el: elBarShadows.node
+          });
+          elBarShadows.node.classList.add('apexcharts-element-hidden');
 
-          for (var j = 0; j < w.globals.dataPoints; j++) {
+          for (var j = 0; j < series[i].length; j++) {
             var strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex);
             var paths = null;
             var pathsParams = {
@@ -19485,6 +20315,21 @@
               barHeight = this.series[i][j] / this.yRatio[this.yaxisIndex];
             }
 
+            var pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex);
+
+            if (this.isFunnel && this.barOptions.isFunnel3d && this.pathArr.length && j > 0) {
+              var barShadow = this.barHelpers.drawBarShadow({
+                color: typeof pathFill === 'string' && (pathFill === null || pathFill === void 0 ? void 0 : pathFill.indexOf('url')) === -1 ? pathFill : Utils$1.hexToRgba(w.globals.colors[i]),
+                prevPaths: this.pathArr[this.pathArr.length - 1],
+                currPaths: paths
+              });
+
+              if (barShadow) {
+                elBarShadows.add(barShadow);
+              }
+            }
+
+            this.pathArr.push(paths);
             var barGoalLine = this.barHelpers.drawGoalLine({
               barXPosition: paths.barXPosition,
               barYPosition: paths.barYPosition,
@@ -19506,7 +20351,6 @@
             }
 
             yArrj.push(y);
-            var pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex);
             this.renderSeries({
               realIndex: realIndex,
               pathFill: pathFill,
@@ -19523,6 +20367,7 @@
               barWidth: paths.barWidth ? paths.barWidth : barWidth,
               elDataLabelsWrap: elDataLabelsWrap,
               elGoalsMarkers: elGoalsMarkers,
+              elBarShadows: elBarShadows,
               visibleSeries: this.visibleI,
               type: 'bar'
             });
@@ -19556,9 +20401,11 @@
             series = _ref.series,
             barHeight = _ref.barHeight,
             barWidth = _ref.barWidth,
+            barXPosition = _ref.barXPosition,
             barYPosition = _ref.barYPosition,
             elDataLabelsWrap = _ref.elDataLabelsWrap,
             elGoalsMarkers = _ref.elGoalsMarkers,
+            elBarShadows = _ref.elBarShadows,
             visibleSeries = _ref.visibleSeries,
             type = _ref.type;
         var w = this.w;
@@ -19625,6 +20472,7 @@
           groupIndex: groupIndex,
           barHeight: barHeight,
           barWidth: barWidth,
+          barXPosition: barXPosition,
           barYPosition: barYPosition,
           renderedPath: renderedPath,
           visibleSeries: visibleSeries
@@ -19642,6 +20490,10 @@
 
         if (elGoalsMarkers) {
           elSeries.add(elGoalsMarkers);
+        }
+
+        if (elBarShadows) {
+          elSeries.add(elBarShadows);
         }
 
         return elSeries;
@@ -19690,6 +20542,10 @@
           }
         }
 
+        if (this.isFunnel) {
+          zeroW = zeroW - (this.barHelpers.getXForValue(this.series[i][j], zeroW) - zeroW) / 2;
+        }
+
         x = this.barHelpers.getXForValue(this.series[i][j], zeroW);
         var paths = this.barHelpers.getBarpaths({
           barYPosition: barYPosition,
@@ -19718,6 +20574,7 @@
         return {
           pathTo: paths.pathTo,
           pathFrom: paths.pathFrom,
+          x1: zeroW,
           x: x,
           y: y,
           goalX: this.barHelpers.getGoalValues('x', zeroW, null, i, j),
@@ -19744,31 +20601,22 @@
         var barXPosition;
 
         if (w.globals.isXNumeric) {
-          var sxI = realIndex;
-
-          if (!w.globals.seriesX[realIndex].length) {
-            sxI = w.globals.maxValsInArrayIndex;
-          }
-
-          if (w.globals.seriesX[sxI][j]) {
-            x = (w.globals.seriesX[sxI][j] - w.globals.minX) / this.xRatio - barWidth * this.seriesLen / 2;
-          } // re-calc barXPosition as x changed
-
-
-          barXPosition = x + barWidth * this.visibleI;
+          var xForNumericX = this.getBarXForNumericXAxis({
+            x: x,
+            j: j,
+            realIndex: realIndex,
+            barWidth: barWidth
+          });
+          x = xForNumericX.x;
+          barXPosition = xForNumericX.barXPosition;
         } else {
           if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
-            var nonZeroColumns = 0;
-            var zeroEncounters = 0;
-            w.globals.seriesPercent.forEach(function (_s, _si) {
-              if (_s[j]) {
-                nonZeroColumns++;
-              }
-
-              if (_si < i && _s[j] === 0) {
-                zeroEncounters++;
-              }
-            });
+            var _this$barHelpers$getZ = this.barHelpers.getZeroValueEncounters({
+              i: i,
+              j: j
+            }),
+                nonZeroColumns = _this$barHelpers$getZ.nonZeroColumns,
+                zeroEncounters = _this$barHelpers$getZ.zeroEncounters;
 
             if (nonZeroColumns > 0) {
               barWidth = this.seriesLen * barWidth / nonZeroColumns;
@@ -19815,6 +20663,29 @@
           goalY: this.barHelpers.getGoalValues('y', null, zeroH, i, j),
           barXPosition: barXPosition,
           barWidth: barWidth
+        };
+      }
+    }, {
+      key: "getBarXForNumericXAxis",
+      value: function getBarXForNumericXAxis(_ref4) {
+        var x = _ref4.x,
+            barWidth = _ref4.barWidth,
+            realIndex = _ref4.realIndex,
+            j = _ref4.j;
+        var w = this.w;
+        var sxI = realIndex;
+
+        if (!w.globals.seriesX[realIndex].length) {
+          sxI = w.globals.maxValsInArrayIndex;
+        }
+
+        if (w.globals.seriesX[sxI][j]) {
+          x = (w.globals.seriesX[sxI][j] - w.globals.minX) / this.xRatio - barWidth * this.seriesLen / 2;
+        }
+
+        return {
+          barXPosition: x + barWidth * this.visibleI,
+          x: x
         };
       }
       /** getPreviousPath is a common function for bars/columns which is used to get previous paths when data changes.
@@ -19939,8 +20810,7 @@
           });
 
           var elGoalsMarkers = _this.graphics.group({
-            class: 'apexcharts-bar-goals-markers',
-            style: "pointer-events: none"
+            class: 'apexcharts-bar-goals-markers'
           });
 
           var barHeight = 0;
@@ -19956,6 +20826,8 @@
           barWidth = initPositions.barWidth;
           xDivision = initPositions.xDivision;
           zeroH = initPositions.zeroH;
+          w.globals.barHeight = barHeight;
+          w.globals.barWidth = barWidth;
 
           _this.barHelpers.initializeStackedXYVars(_this); // where all stack bar disappear after collapsing the first series
 
@@ -20076,20 +20948,16 @@
     }, {
       key: "initialPositions",
       value: function initialPositions(x, y, xDivision, yDivision, zeroH, zeroW) {
+        var _w$globals$seriesGrou, _w$globals$seriesGrou2;
+
         var w = this.w;
         var barHeight, barWidth;
 
         if (this.isHorizontal) {
-          var _w$globals$seriesGrou;
-
           // height divided into equal parts
           yDivision = w.globals.gridHeight / w.globals.dataPoints;
           barHeight = yDivision;
           barHeight = barHeight * parseInt(w.config.plotOptions.bar.barHeight, 10) / 100;
-
-          if ((_w$globals$seriesGrou = w.globals.seriesGroups) !== null && _w$globals$seriesGrou !== void 0 && _w$globals$seriesGrou.length) {
-            barHeight = barHeight / w.globals.seriesGroups.length;
-          }
 
           if (String(w.config.plotOptions.bar.barHeight).indexOf('%') === -1) {
             barHeight = parseInt(w.config.plotOptions.bar.barHeight, 10);
@@ -20099,8 +20967,6 @@
 
           y = (yDivision - barHeight) / 2;
         } else {
-          var _w$globals$seriesGrou2;
-
           // width divided into equal parts
           xDivision = w.globals.gridWidth / w.globals.dataPoints;
           barWidth = xDivision;
@@ -20111,10 +20977,6 @@
             barWidth = xDivision * parseInt(this.barOptions.columnWidth, 10) / 100;
           } else {
             barWidth = barWidth * parseInt(w.config.plotOptions.bar.columnWidth, 10) / 100;
-          }
-
-          if ((_w$globals$seriesGrou2 = w.globals.seriesGroups) !== null && _w$globals$seriesGrou2 !== void 0 && _w$globals$seriesGrou2.length) {
-            barWidth = barWidth / w.globals.seriesGroups.length;
           }
 
           if (String(w.config.plotOptions.bar.columnWidth).indexOf('%') === -1) {
@@ -20131,8 +20993,8 @@
           y: y,
           yDivision: yDivision,
           xDivision: xDivision,
-          barHeight: barHeight,
-          barWidth: barWidth,
+          barHeight: (_w$globals$seriesGrou = w.globals.seriesGroups) !== null && _w$globals$seriesGrou !== void 0 && _w$globals$seriesGrou.length ? barHeight / w.globals.seriesGroups.length : barHeight,
+          barWidth: (_w$globals$seriesGrou2 = w.globals.seriesGroups) !== null && _w$globals$seriesGrou2 !== void 0 && _w$globals$seriesGrou2.length ? barWidth / w.globals.seriesGroups.length : barWidth,
           zeroH: zeroH,
           zeroW: zeroW
         };
@@ -20970,7 +21832,7 @@
               i: i,
               index: i,
               j: j,
-              val: heatSeries[i][j],
+              val: series[i][j],
               'stroke-width': this.strokeWidth,
               stroke: w.config.plotOptions.heatmap.useFillColorAsStroke ? color : w.globals.stroke.colors[0],
               color: color
@@ -21036,8 +21898,6 @@
         }
 
         w.globals.yAxisScale[0].result = yAxisScale;
-        var divisor = w.globals.gridHeight / w.globals.series.length;
-        w.config.yaxis[0].labels.offsetY = -(divisor / 2);
         return ret;
       }
     }, {
@@ -21626,6 +22486,7 @@
             angle = _ref.angle,
             size = _ref.size;
         var path;
+        var graphics = new Graphics(this.ctx);
         var startDeg = startAngle;
         var startRadians = Math.PI * (startDeg - 90) / 180;
         var endDeg = angle + startAngle; // prevent overlap
@@ -21653,18 +22514,18 @@
           path = [].concat(pathBeginning).join(' ');
         }
 
-        return path;
+        return graphics.roundPathCorners(path, this.strokeWidth * 2);
       }
     }, {
       key: "drawPolarElements",
       value: function drawPolarElements(parent) {
         var w = this.w;
-        var scale = new Range$1(this.ctx);
+        var scale = new Scales(this.ctx);
         var graphics = new Graphics(this.ctx);
         var helpers = new CircularChartsHelpers(this.ctx);
         var gCircles = graphics.group();
         var gYAxis = graphics.group();
-        var yScale = scale.niceScale(0, Math.ceil(this.maxY), w.config.yaxis[0].tickAmount, 0, true);
+        var yScale = scale.niceScale(0, Math.ceil(this.maxY), 0);
         var yTexts = yScale.result.reverse();
         var len = yScale.result.length;
         this.maxY = yScale.niceMax;
@@ -22408,6 +23269,7 @@
       _this.totalAngle = Math.abs(w.config.plotOptions.radialBar.endAngle - w.config.plotOptions.radialBar.startAngle);
       _this.trackStartAngle = w.config.plotOptions.radialBar.track.startAngle;
       _this.trackEndAngle = w.config.plotOptions.radialBar.track.endAngle;
+      _this.barLabels = _this.w.config.plotOptions.radialBar.barLabels;
       _this.donutDataLabels = _this.w.config.plotOptions.radialBar.dataLabels;
       _this.radialDataLabels = _this.donutDataLabels; // make a copy for easy reference
 
@@ -22415,6 +23277,7 @@
       if (!_this.trackEndAngle) _this.trackEndAngle = _this.endAngle;
       if (_this.endAngle === 360) _this.endAngle = 359.99;
       _this.margin = parseInt(w.config.plotOptions.radialBar.track.margin, 10);
+      _this.onBarLabelClick = _this.onBarLabelClick.bind(_assertThisInitialized(_this));
       return _this;
     }
 
@@ -22679,6 +23542,54 @@
             index: 0,
             j: i
           });
+
+          if (this.barLabels.enabled) {
+            var barStartCords = Utils$1.polarToCartesian(opts.centerX, opts.centerY, opts.size, startAngle);
+            var text = this.barLabels.formatter(w.globals.seriesNames[i], {
+              seriesIndex: i,
+              w: w
+            });
+            var classes = ['apexcharts-radialbar-label'];
+
+            if (!this.barLabels.onClick) {
+              classes.push('apexcharts-no-click');
+            }
+
+            var textColor = this.barLabels.useSeriesColors ? w.globals.colors[i] : w.config.chart.foreColor;
+
+            if (!textColor) {
+              textColor = w.config.chart.foreColor;
+            }
+
+            var x = barStartCords.x - this.barLabels.margin;
+            var y = barStartCords.y;
+            var elText = graphics.drawText({
+              x: x,
+              y: y,
+              text: text,
+              textAnchor: 'end',
+              dominantBaseline: 'middle',
+              fontFamily: this.barLabels.fontFamily,
+              fontWeight: this.barLabels.fontWeight,
+              fontSize: this.barLabels.fontSize,
+              foreColor: textColor,
+              cssClass: classes.join(' ')
+            });
+            elText.on('click', this.onBarLabelClick);
+            elText.attr({
+              rel: i + 1
+            });
+
+            if (startAngle !== 0) {
+              elText.attr({
+                'transform-origin': "".concat(x, " ").concat(y),
+                transform: "rotate(".concat(startAngle, " 0 0)")
+              });
+            }
+
+            elRadialBarArc.add(elText);
+          }
+
           var dur = 0;
 
           if (this.initialAnim && !w.globals.resized && !w.globals.dataChanged) {
@@ -22771,6 +23682,20 @@
         var w = this.w;
         return opts.size * (100 - parseInt(w.config.plotOptions.radialBar.hollow.size, 10)) / 100 / (opts.series.length + 1) - this.margin;
       }
+    }, {
+      key: "onBarLabelClick",
+      value: function onBarLabelClick(e) {
+        var seriesIndex = parseInt(e.target.getAttribute('rel'), 10) - 1;
+        var legendClick = this.barLabels.onClick;
+        var w = this.w;
+
+        if (legendClick) {
+          legendClick(w.globals.seriesNames[seriesIndex], {
+            w: w,
+            seriesIndex: seriesIndex
+          });
+        }
+      }
     }]);
 
     return Radial;
@@ -22844,7 +23769,9 @@
           zeroW = initPositions.zeroW;
           x = initPositions.x;
           barWidth = initPositions.barWidth;
+          barHeight = initPositions.barHeight;
           xDivision = initPositions.xDivision;
+          yDivision = initPositions.yDivision;
           zeroH = initPositions.zeroH; // eldatalabels
 
           var elDataLabelsWrap = graphics.group({
@@ -22852,15 +23779,17 @@
             'data:realIndex': realIndex
           });
           var elGoalsMarkers = graphics.group({
-            class: 'apexcharts-rangebar-goals-markers',
-            style: "pointer-events: none"
+            class: 'apexcharts-rangebar-goals-markers'
           });
 
           for (var j = 0; j < w.globals.dataPoints; j++) {
+            var _this$renderSeries;
+
             var strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex);
             var y1 = this.seriesRangeStart[i][j];
             var y2 = this.seriesRangeEnd[i][j];
             var paths = null;
+            var barXPosition = null;
             var barYPosition = null;
             var params = {
               x: x,
@@ -22868,24 +23797,21 @@
               strokeWidth: strokeWidth,
               elSeries: elSeries
             };
-            yDivision = initPositions.yDivision;
-            barHeight = initPositions.barHeight;
+            var seriesLen = this.seriesLen;
+
+            if (w.config.plotOptions.bar.rangeBarGroupRows) {
+              seriesLen = 1;
+            }
+
+            if (typeof w.config.series[i].data[j] === 'undefined') {
+              // no data exists for further indexes, hence we need to get out the innr loop.
+              // As we are iterating over total datapoints, there is a possiblity the series might not have data for j index
+              break;
+            }
 
             if (this.isHorizontal) {
               barYPosition = y + barHeight * this.visibleI;
-              var seriesLen = this.seriesLen;
-
-              if (w.config.plotOptions.bar.rangeBarGroupRows) {
-                seriesLen = 1;
-              }
-
               var srty = (yDivision - barHeight * seriesLen) / 2;
-
-              if (typeof w.config.series[i].data[j] === 'undefined') {
-                // no data exists for further indexes, hence we need to get out the innr loop.
-                // As we are iterating over total datapoints, there is a possiblity the series might not have data for j index
-                break;
-              }
 
               if (w.config.series[i].data[j].x) {
                 var positions = this.detectOverlappingBars({
@@ -22916,14 +23842,37 @@
               }, params));
               barWidth = paths.barWidth;
             } else {
+              if (w.globals.isXNumeric) {
+                x = (w.globals.seriesX[i][j] - w.globals.minX) / this.xRatio - barWidth / 2;
+              }
+
+              barXPosition = x + barWidth * this.visibleI;
+              var srtx = (xDivision - barWidth * seriesLen) / 2;
+
+              if (w.config.series[i].data[j].x) {
+                var _positions = this.detectOverlappingBars({
+                  i: i,
+                  j: j,
+                  barXPosition: barXPosition,
+                  srtx: srtx,
+                  barWidth: barWidth,
+                  xDivision: xDivision,
+                  initPositions: initPositions
+                });
+
+                barWidth = _positions.barWidth;
+                barXPosition = _positions.barXPosition;
+              }
+
               paths = this.drawRangeColumnPaths(_objectSpread2({
                 indexes: {
                   i: i,
                   j: j,
                   realIndex: realIndex
                 },
-                zeroH: zeroH,
                 barWidth: barWidth,
+                barXPosition: barXPosition,
+                zeroH: zeroH,
                 xDivision: xDivision
               }, params));
               barHeight = paths.barHeight;
@@ -22946,7 +23895,7 @@
             x = paths.x;
             var pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex);
             var lineFill = w.globals.stroke.colors[realIndex];
-            this.renderSeries({
+            this.renderSeries((_this$renderSeries = {
               realIndex: realIndex,
               pathFill: pathFill,
               lineFill: lineFill,
@@ -22962,13 +23911,10 @@
               elSeries: elSeries,
               series: series,
               barHeight: barHeight,
-              barYPosition: barYPosition,
               barWidth: barWidth,
-              elDataLabelsWrap: elDataLabelsWrap,
-              elGoalsMarkers: elGoalsMarkers,
-              visibleSeries: this.visibleI,
-              type: 'rangebar'
-            });
+              barXPosition: barXPosition,
+              barYPosition: barYPosition
+            }, _defineProperty(_this$renderSeries, "barWidth", barWidth), _defineProperty(_this$renderSeries, "elDataLabelsWrap", elDataLabelsWrap), _defineProperty(_this$renderSeries, "elGoalsMarkers", elGoalsMarkers), _defineProperty(_this$renderSeries, "visibleSeries", this.visibleI), _defineProperty(_this$renderSeries, "type", 'rangebar'), _this$renderSeries));
           }
 
           ret.add(elSeries);
@@ -22982,47 +23928,75 @@
         var i = _ref.i,
             j = _ref.j,
             barYPosition = _ref.barYPosition,
+            barXPosition = _ref.barXPosition,
             srty = _ref.srty,
+            srtx = _ref.srtx,
             barHeight = _ref.barHeight,
+            barWidth = _ref.barWidth,
             yDivision = _ref.yDivision,
+            xDivision = _ref.xDivision,
             initPositions = _ref.initPositions;
         var w = this.w;
         var overlaps = [];
         var rangeName = w.config.series[i].data[j].rangeName;
-        var labelX = w.config.series[i].data[j].x;
-        var rowIndex = w.globals.labels.indexOf(labelX);
+        var x = w.config.series[i].data[j].x;
+        var labelX = Array.isArray(x) ? x.join(' ') : x;
+        var rowIndex = w.globals.labels.map(function (_) {
+          return Array.isArray(_) ? _.join(' ') : _;
+        }).indexOf(labelX);
         var overlappedIndex = w.globals.seriesRange[i].findIndex(function (tx) {
           return tx.x === labelX && tx.overlaps.length > 0;
         });
 
-        if (w.config.plotOptions.bar.rangeBarGroupRows) {
-          barYPosition = srty + yDivision * rowIndex;
+        if (this.isHorizontal) {
+          if (w.config.plotOptions.bar.rangeBarGroupRows) {
+            barYPosition = srty + yDivision * rowIndex;
+          } else {
+            barYPosition = srty + barHeight * this.visibleI + yDivision * rowIndex;
+          }
+
+          if (overlappedIndex > -1 && !w.config.plotOptions.bar.rangeBarOverlap) {
+            overlaps = w.globals.seriesRange[i][overlappedIndex].overlaps;
+
+            if (overlaps.indexOf(rangeName) > -1) {
+              barHeight = initPositions.barHeight / overlaps.length;
+              barYPosition = barHeight * this.visibleI + yDivision * (100 - parseInt(this.barOptions.barHeight, 10)) / 100 / 2 + barHeight * (this.visibleI + overlaps.indexOf(rangeName)) + yDivision * rowIndex;
+            }
+          }
         } else {
-          barYPosition = srty + barHeight * this.visibleI + yDivision * rowIndex;
-        }
+          if (rowIndex > -1) {
+            if (w.config.plotOptions.bar.rangeBarGroupRows) {
+              barXPosition = srtx + xDivision * rowIndex;
+            } else {
+              barXPosition = srtx + barWidth * this.visibleI + xDivision * rowIndex;
+            }
+          }
 
-        if (overlappedIndex > -1 && !w.config.plotOptions.bar.rangeBarOverlap) {
-          overlaps = w.globals.seriesRange[i][overlappedIndex].overlaps;
+          if (overlappedIndex > -1 && !w.config.plotOptions.bar.rangeBarOverlap) {
+            overlaps = w.globals.seriesRange[i][overlappedIndex].overlaps;
 
-          if (overlaps.indexOf(rangeName) > -1) {
-            barHeight = initPositions.barHeight / overlaps.length;
-            barYPosition = barHeight * this.visibleI + yDivision * (100 - parseInt(this.barOptions.barHeight, 10)) / 100 / 2 + barHeight * (this.visibleI + overlaps.indexOf(rangeName)) + yDivision * rowIndex;
+            if (overlaps.indexOf(rangeName) > -1) {
+              barWidth = initPositions.barWidth / overlaps.length;
+              barXPosition = barWidth * this.visibleI + xDivision * (100 - parseInt(this.barOptions.barWidth, 10)) / 100 / 2 + barWidth * (this.visibleI + overlaps.indexOf(rangeName)) + xDivision * rowIndex;
+            }
           }
         }
 
         return {
           barYPosition: barYPosition,
-          barHeight: barHeight
+          barXPosition: barXPosition,
+          barHeight: barHeight,
+          barWidth: barWidth
         };
       }
     }, {
       key: "drawRangeColumnPaths",
       value: function drawRangeColumnPaths(_ref2) {
         var indexes = _ref2.indexes,
-            x = _ref2.x;
-            _ref2.strokeWidth;
-            var xDivision = _ref2.xDivision,
+            x = _ref2.x,
+            xDivision = _ref2.xDivision,
             barWidth = _ref2.barWidth,
+            barXPosition = _ref2.barXPosition,
             zeroH = _ref2.zeroH;
         var w = this.w;
         var i = indexes.i;
@@ -23032,12 +24006,6 @@
         var range = this.getRangeValue(realIndex, j);
         var y1 = Math.min(range.start, range.end);
         var y2 = Math.max(range.start, range.end);
-
-        if (w.globals.isXNumeric) {
-          x = (w.globals.seriesX[i][j] - w.globals.minX) / this.xRatio - barWidth / 2;
-        }
-
-        var barXPosition = x + barWidth * this.visibleI;
 
         if (typeof this.series[i][j] === 'undefined' || this.series[i][j] === null) {
           y1 = zeroH;
@@ -23062,6 +24030,15 @@
 
         if (!w.globals.isXNumeric) {
           x = x + xDivision;
+        } else {
+          var xForNumericXAxis = this.getBarXForNumericXAxis({
+            x: x,
+            j: j,
+            realIndex: realIndex,
+            barWidth: barWidth
+          });
+          x = xForNumericXAxis.x;
+          barXPosition = xForNumericXAxis.barXPosition;
         }
 
         return {
@@ -23230,16 +24207,17 @@
     }, {
       key: "determineFirstPrevY",
       value: function determineFirstPrevY(_ref3) {
-        var _series$i;
+        var _this$w$config$series, _series$i;
 
         var i = _ref3.i,
             series = _ref3.series,
             prevY = _ref3.prevY,
             lineYPosition = _ref3.lineYPosition;
         var w = this.w;
+        var stackSeries = w.config.chart.stacked && !w.globals.comboCharts || w.config.chart.stacked && w.globals.comboCharts && (!this.w.config.chart.stackOnlyBar || ((_this$w$config$series = this.w.config.series[i]) === null || _this$w$config$series === void 0 ? void 0 : _this$w$config$series.type) === 'bar');
 
         if (typeof ((_series$i = series[i]) === null || _series$i === void 0 ? void 0 : _series$i[0]) !== 'undefined') {
-          if (w.config.chart.stacked) {
+          if (stackSeries) {
             if (i > 0) {
               // 1st y value of previous series
               lineYPosition = this.lineCtx.prevSeriesY[i - 1][0];
@@ -23254,7 +24232,7 @@
           prevY = lineYPosition - series[i][0] / this.lineCtx.yRatio[this.lineCtx.yaxisIndex] + (this.lineCtx.isReversed ? series[i][0] / this.lineCtx.yRatio[this.lineCtx.yaxisIndex] : 0) * 2;
         } else {
           // the first value in the current series is null
-          if (w.config.chart.stacked && i > 0 && typeof series[i][0] === 'undefined') {
+          if (stackSeries && i > 0 && typeof series[i][0] === 'undefined') {
             // check for undefined value (undefined value will occur when we clear the series while user clicks on legend to hide serieses)
             for (var s = i - 1; s >= 0; s--) {
               // for loop to get to 1st previous value until we get it
@@ -23276,6 +24254,177 @@
 
     return Helpers;
   }();
+
+  /**
+   * 
+   * @yr/monotone-cubic-spline (https://github.com/YR/monotone-cubic-spline)
+   * 
+   * The MIT License (MIT)
+   * 
+   * Copyright (c) 2015 yr.no
+   * 
+   * Permission is hereby granted, free of charge, to any person obtaining a copy of
+   * this software and associated documentation files (the "Software"), to deal in
+   * the Software without restriction, including without limitation the rights to
+   * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+   * the Software, and to permit persons to whom the Software is furnished to do so,
+   * subject to the following conditions:
+   * 
+   * The above copyright notice and this permission notice shall be included in all
+   * copies or substantial portions of the Software.
+
+   * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+   * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+   * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+   * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+   * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+   */
+
+  /**
+   * Generate tangents for 'points'
+   * @param {Array} points
+   * @returns {Array}
+   */
+  var tangents = function tangents(points) {
+    var m = finiteDifferences(points);
+    var n = points.length - 1;
+    var ε = 1e-6;
+    var tgts = [];
+    var a, b, d, s;
+
+    for (var i = 0; i < n; i++) {
+      d = slope(points[i], points[i + 1]);
+
+      if (Math.abs(d) < ε) {
+        m[i] = m[i + 1] = 0;
+      } else {
+        a = m[i] / d;
+        b = m[i + 1] / d;
+        s = a * a + b * b;
+
+        if (s > 9) {
+          s = d * 3 / Math.sqrt(s);
+          m[i] = s * a;
+          m[i + 1] = s * b;
+        }
+      }
+    }
+
+    for (var _i = 0; _i <= n; _i++) {
+      s = (points[Math.min(n, _i + 1)][0] - points[Math.max(0, _i - 1)][0]) / (6 * (1 + m[_i] * m[_i]));
+      tgts.push([s || 0, m[_i] * s || 0]);
+    }
+
+    return tgts;
+  };
+  /**
+   * Convert 'points' to svg path
+   * @param {Array} points
+   * @returns {String}
+   */
+
+  var svgPath = function svgPath(points) {
+    var p = '';
+
+    for (var i = 0; i < points.length; i++) {
+      var point = points[i];
+      var n = point.length;
+
+      if (n > 4) {
+        p += "C".concat(point[0], ", ").concat(point[1]);
+        p += ", ".concat(point[2], ", ").concat(point[3]);
+        p += ", ".concat(point[4], ", ").concat(point[5]);
+      } else if (n > 2) {
+        p += "S".concat(point[0], ", ").concat(point[1]);
+        p += ", ".concat(point[2], ", ").concat(point[3]);
+      }
+    }
+
+    return p;
+  };
+  var spline = {
+    /**
+     * Convert 'points' to bezier
+     * @param {Array} points
+     * @returns {Array}
+     */
+    points: function points(_points) {
+      var tgts = tangents(_points);
+      var p = _points[1];
+      var p0 = _points[0];
+      var pts = [];
+      var t = tgts[1];
+      var t0 = tgts[0]; // Add starting 'M' and 'C' points
+
+      pts.push(p0, [p0[0] + t0[0], p0[1] + t0[1], p[0] - t[0], p[1] - t[1], p[0], p[1]]); // Add 'S' points
+
+      for (var i = 2, n = tgts.length; i < n; i++) {
+        var _p = _points[i];
+        var _t = tgts[i];
+        pts.push([_p[0] - _t[0], _p[1] - _t[1], _p[0], _p[1]]);
+      }
+
+      return pts;
+    },
+
+    /**
+     * Slice out a segment of 'points'
+     * @param {Array} points
+     * @param {Number} start
+     * @param {Number} end
+     * @returns {Array}
+     */
+    slice: function slice(points, start, end) {
+      var pts = points.slice(start, end);
+
+      if (start) {
+        // Add additional 'C' points
+        if (pts[1].length < 6) {
+          var n = pts[0].length;
+          pts[1] = [pts[0][n - 2] * 2 - pts[0][n - 4], pts[0][n - 1] * 2 - pts[0][n - 3]].concat(pts[1]);
+        } // Remove control points for 'M'
+
+
+        pts[0] = pts[0].slice(-2);
+      }
+
+      return pts;
+    }
+  };
+  /**
+   * Compute slope from point 'p0' to 'p1'
+   * @param {Array} p0
+   * @param {Array} p1
+   * @returns {Number}
+   */
+
+  function slope(p0, p1) {
+    return (p1[1] - p0[1]) / (p1[0] - p0[0]);
+  }
+  /**
+   * Compute three-point differences for 'points'
+   * @param {Array} points
+   * @returns {Array}
+   */
+
+
+  function finiteDifferences(points) {
+    var m = [];
+    var p0 = points[0];
+    var p1 = points[1];
+    var d = m[0] = slope(p0, p1);
+    var i = 1;
+
+    for (var n = points.length - 1; i < n; i++) {
+      p0 = p1;
+      p1 = points[i + 1];
+      m[i] = (d + (d = slope(p0, p1))) * 0.5;
+    }
+
+    m[i] = d;
+    return m;
+  }
 
   /**
    * ApexCharts Line Class responsible for drawing Line / Area / RangeArea Charts.
@@ -23303,6 +24452,8 @@
     _createClass(Line, [{
       key: "draw",
       value: function draw(series, ctype, seriesIndex, seriesRangeEnd) {
+        var _w$config$series$;
+
         var w = this.w;
         var graphics = new Graphics(this.ctx);
         var type = w.globals.comboCharts ? ctype : w.config.chart.type;
@@ -23326,6 +24477,8 @@
           this._initSerieVariables(series, i, realIndex);
 
           var yArrj = []; // hold y values of current iterating series
+
+          var y2Arrj = []; // holds y2 values in range-area charts
 
           var xArrj = []; // hold x values of current iterating series
 
@@ -23355,7 +24508,14 @@
             lineYPosition: lineYPosition
           });
           prevY = firstPrevY.prevY;
-          yArrj.push(prevY);
+
+          if (w.config.stroke.curve === 'monotonCubic' && series[i][0] === null) {
+            // we have to discard the y position if 1st dataPoint is null as it causes issues with monotoneCubic path creation
+            yArrj.push(null);
+          } else {
+            yArrj.push(prevY);
+          }
+
           pY = prevY; // y2 are needed for range-area charts
 
           var firstPrevY2 = void 0;
@@ -23369,6 +24529,7 @@
             });
             prevY2 = firstPrevY2.prevY;
             pY2 = prevY2;
+            y2Arrj.push(prevY2);
           }
 
           var pathsFrom = this._calculatePathsFrom({
@@ -23397,6 +24558,7 @@
             lineYPosition: lineYPosition,
             xArrj: xArrj,
             yArrj: yArrj,
+            y2Arrj: y2Arrj,
             seriesRangeEnd: seriesRangeEnd
           };
 
@@ -23438,6 +24600,12 @@
           allSeries.push(this.elSeries);
         }
 
+        if (typeof ((_w$config$series$ = w.config.series[0]) === null || _w$config$series$ === void 0 ? void 0 : _w$config$series$.zIndex) !== 'undefined') {
+          allSeries.sort(function (a, b) {
+            return Number(a.node.getAttribute('zIndex')) - Number(b.node.getAttribute('zIndex'));
+          });
+        }
+
         if (w.config.chart.stacked) {
           for (var s = allSeries.length; s > 0; s--) {
             ret.add(allSeries[s - 1]);
@@ -23476,6 +24644,7 @@
 
         this.elSeries = graphics.group({
           class: "apexcharts-series",
+          zIndex: typeof w.config.series[realIndex].zIndex !== 'undefined' ? w.config.series[realIndex].zIndex : realIndex,
           seriesName: Utils$1.escapeString(w.globals.seriesNames[realIndex])
         }); // points
 
@@ -23679,6 +24848,9 @@
     }, {
       key: "_iterateOverDataPoints",
       value: function _iterateOverDataPoints(_ref3) {
+        var _this = this,
+            _this$w$config$series;
+
         var type = _ref3.type,
             series = _ref3.series,
             iterations = _ref3.iterations,
@@ -23695,6 +24867,7 @@
             lineYPosition = _ref3.lineYPosition,
             xArrj = _ref3.xArrj,
             yArrj = _ref3.yArrj,
+            y2Arrj = _ref3.y2Arrj,
             isRangeStart = _ref3.isRangeStart,
             seriesRangeEnd = _ref3.seriesRangeEnd;
         var w = this.w;
@@ -23711,7 +24884,12 @@
           iterations = w.globals.dataPoints > 1 ? w.globals.dataPoints - 1 : w.globals.dataPoints;
         }
 
+        var getY = function getY(_y, lineYPos) {
+          return lineYPos - _y / yRatio[_this.yaxisIndex] + (_this.isReversed ? _y / yRatio[_this.yaxisIndex] : 0) * 2;
+        };
+
         var y2 = y;
+        var stackSeries = w.config.chart.stacked && !w.globals.comboCharts || w.config.chart.stacked && w.globals.comboCharts && (!this.w.config.chart.stackOnlyBar || ((_this$w$config$series = this.w.config.series[realIndex]) === null || _this$w$config$series === void 0 ? void 0 : _this$w$config$series.type) === 'bar');
 
         for (var j = 0; j < iterations; j++) {
           var isNull = typeof series[i][j + 1] === 'undefined' || series[i][j + 1] === null;
@@ -23729,7 +24907,7 @@
             x = x + this.xDivision;
           }
 
-          if (w.config.chart.stacked) {
+          if (stackSeries) {
             if (i > 0 && w.globals.collapsedSeries.length < w.config.series.length - 1) {
               // a collapsed series in a stacked bar chart may provide wrong result for the next series, hence find the prevIndex of prev series which is not collapsed - fixes apexcharts.js#1372
               var prevIndex = function prevIndex(pi) {
@@ -23755,19 +24933,25 @@
           }
 
           if (isNull) {
-            y = lineYPosition - minY / yRatio[this.yaxisIndex] + (this.isReversed ? minY / yRatio[this.yaxisIndex] : 0) * 2;
+            y = getY(minY, lineYPosition);
           } else {
-            y = lineYPosition - series[i][j + 1] / yRatio[this.yaxisIndex] + (this.isReversed ? series[i][j + 1] / yRatio[this.yaxisIndex] : 0) * 2;
+            y = getY(series[i][j + 1], lineYPosition);
 
             if (type === 'rangeArea') {
-              y2 = lineYPosition - seriesRangeEnd[i][j + 1] / yRatio[this.yaxisIndex] + (this.isReversed ? seriesRangeEnd[i][j + 1] / yRatio[this.yaxisIndex] : 0) * 2;
+              y2 = getY(seriesRangeEnd[i][j + 1], lineYPosition);
             }
           } // push current X
 
 
           xArrj.push(x); // push current Y that will be used as next series's bottom position
 
-          yArrj.push(y);
+          if (isNull && w.config.stroke.curve === 'smooth') {
+            yArrj.push(null);
+          } else {
+            yArrj.push(y);
+          }
+
+          y2Arrj.push(y2);
           var pointsPos = this.lineHelpers.calculatePoints({
             series: series,
             x: x,
@@ -23787,6 +24971,9 @@
             x: x,
             y: y,
             y2: y2,
+            xArrj: xArrj,
+            yArrj: yArrj,
+            y2Arrj: y2Arrj,
             pX: pX,
             pY: pY,
             linePath: linePath,
@@ -23804,7 +24991,7 @@
           areaPath = calculatedPaths.areaPath;
           linePath = calculatedPaths.linePath;
 
-          if (this.appendPathFrom) {
+          if (this.appendPathFrom && !(w.config.stroke.curve === 'monotoneCubic' && type === 'rangeArea')) {
             pathFromLine = pathFromLine + graphics.line(x, this.zeroY);
             pathFromArea = pathFromArea + graphics.line(x, this.zeroY);
           }
@@ -23886,7 +25073,10 @@
             j = _ref5.j,
             x = _ref5.x,
             y = _ref5.y,
+            xArrj = _ref5.xArrj,
+            yArrj = _ref5.yArrj,
             y2 = _ref5.y2,
+            y2Arrj = _ref5.y2Arrj,
             pX = _ref5.pX,
             pY = _ref5.pY,
             linePath = _ref5.linePath,
@@ -23906,11 +25096,52 @@
           } else {
             curve = w.config.stroke.curve[i];
           }
-        } // logic of smooth curve derived from chartist
-        // CREDITS: https://gionkunz.github.io/chartist-js/
+        }
 
+        if (type === 'rangeArea' && (w.globals.hasNullValues || w.config.forecastDataPoints.count > 0) && curve === 'monotoneCubic') {
+          curve = 'straight';
+        }
 
-        if (curve === 'smooth') {
+        if (curve === 'monotoneCubic') {
+          var shouldRenderMonotone = type === 'rangeArea' ? xArrj.length === w.globals.dataPoints : j === series[i].length - 2;
+          var smoothInputs = xArrj.map(function (_, i) {
+            return [xArrj[i], yArrj[i]];
+          }).filter(function (_) {
+            return _[1] !== null;
+          });
+
+          if (shouldRenderMonotone && smoothInputs.length > 1) {
+            var points = spline.points(smoothInputs);
+            linePath += svgPath(points);
+
+            if (series[i][0] === null) {
+              // if the first dataPoint is null, we use the linePath directly
+              areaPath = linePath;
+            } else {
+              // else, we append the areaPath
+              areaPath += svgPath(points);
+            }
+
+            if (type === 'rangeArea' && isRangeStart) {
+              // draw the line to connect y with y2; then draw the other end of range
+              linePath += graphics.line(xArrj[xArrj.length - 1], y2Arrj[y2Arrj.length - 1]);
+              var xArrjInversed = xArrj.slice().reverse();
+              var y2ArrjInversed = y2Arrj.slice().reverse();
+              var smoothInputsY2 = xArrjInversed.map(function (_, i) {
+                return [xArrjInversed[i], y2ArrjInversed[i]];
+              });
+              var pointsY2 = spline.points(smoothInputsY2);
+              linePath += svgPath(pointsY2); // in range area, we don't have separate line and area path
+
+              areaPath = linePath;
+            } else {
+              areaPath += graphics.line(smoothInputs[smoothInputs.length - 1][0], areaBottomY) + graphics.line(smoothInputs[0][0], areaBottomY) + graphics.move(smoothInputs[0][0], smoothInputs[0][1]) + 'z';
+            }
+
+            linePaths.push(linePath);
+            areaPaths.push(areaPath);
+          }
+        } else if (curve === 'smooth') {
           var length = (x - pX) * 0.35;
 
           if (w.globals.hasNullValues) {
@@ -24326,7 +25557,7 @@
             var y1 = r[1];
             var x2 = r[2];
             var y2 = r[3];
-            var elRect = graphics.drawRect(x1, y1, x2 - x1, y2 - y1, 0, '#fff', 1, _this.strokeWidth, w.config.plotOptions.treemap.useFillColorAsStroke ? color : w.globals.stroke.colors[i]);
+            var elRect = graphics.drawRect(x1, y1, x2 - x1, y2 - y1, w.config.plotOptions.treemap.borderRadius, '#fff', 1, _this.strokeWidth, w.config.plotOptions.treemap.useFillColorAsStroke ? color : w.globals.stroke.colors[i]);
             elRect.attr({
               cx: x1,
               cy: y1,
@@ -24402,6 +25633,11 @@
               dataPointIndex: j,
               w: w
             });
+
+            if (w.config.plotOptions.treemap.dataLabels.format === 'truncate') {
+              fontSize = parseInt(w.config.dataLabels.style.fontSize, 10);
+              formattedText = _this.truncateLabels(formattedText, fontSize, x1, y1, x2, y2);
+            }
 
             var dataLabels = _this.helpers.calculateDataLabels({
               text: formattedText,
@@ -24494,7 +25730,28 @@
 
         if (textRect.width + this.w.config.stroke.width + 5 > x2 - x1 && textRect.width <= y2 - y1) {
           var labelRotatingCenter = graphics.rotateAroundCenter(elText.node);
-          elText.node.setAttribute('transform', "rotate(-90 ".concat(labelRotatingCenter.x, " ").concat(labelRotatingCenter.y, ")"));
+          elText.node.setAttribute('transform', "rotate(-90 ".concat(labelRotatingCenter.x, " ").concat(labelRotatingCenter.y, ") translate(").concat(textRect.height / 3, ")"));
+        }
+      } // This is an alternative label formatting method that uses a
+      // consistent font size, and trims the edge of long labels
+
+    }, {
+      key: "truncateLabels",
+      value: function truncateLabels(text, fontSize, x1, y1, x2, y2) {
+        var graphics = new Graphics(this.ctx);
+        var textRect = graphics.getTextRects(text, fontSize); // Determine max width based on ideal orientation of text
+
+        var labelMaxWidth = textRect.width + this.w.config.stroke.width + 5 > x2 - x1 && y2 - y1 > x2 - x1 ? y2 - y1 : x2 - x1;
+        var truncatedText = graphics.getTextBasedOnMaxWidth({
+          text: text,
+          maxWidth: labelMaxWidth,
+          fontSize: fontSize
+        }); // Return empty label when text has been trimmed for very small rects
+
+        if (text.length !== truncatedText.length && labelMaxWidth / fontSize < 5) {
+          return '';
+        } else {
+          return truncatedText;
         }
       }
     }, {
@@ -25071,8 +26328,8 @@
           firstTickPosition = 0;
           val = Utils$1.monthMod(firstVal.minMonth);
           unit = 'month';
-          date = firstVal.minDate;
-          numberOfDays++;
+          date = firstVal.minDate; // numberOfDays++
+          // removed the above line to fix https://github.com/apexcharts/apexcharts.js/issues/305#issuecomment-1019520513
         } else if (firstVal.minDate !== 1 && firstVal.minHour === 0 && firstVal.minMinute === 0) {
           // fixes apexcharts/apexcharts.js/issues/1730
           firstTickPosition = 0;
@@ -25155,16 +26412,25 @@
         var remainingMins = 60 - (firstVal.minMinute + firstVal.minSecond / 60.0);
         var firstTickPosition = remainingMins * minutesWidthOnXAxis;
         var firstTickValue = firstVal.minHour + 1;
-        var hour = firstTickValue + 1;
+        var hour = firstTickValue;
 
         if (remainingMins === 60) {
           firstTickPosition = 0;
           firstTickValue = firstVal.minHour;
-          hour = firstTickValue + 1;
+          hour = firstTickValue;
         }
 
-        var date = currentDate;
-        var month = changeMonth(date, currentMonth); // push the first tick in the array
+        var date = currentDate; // we need to apply date switching logic here as well, to avoid duplicated labels
+
+        if (hour >= 24) {
+          hour = 0;
+          date += 1;
+          unit = 'day';
+        }
+
+        var checkNextMonth = changeDate(date, currentMonth);
+        var month = checkNextMonth.month;
+        month = changeMonth(date, month); // push the first tick in the array
 
         this.timeScaleArray.push({
           position: firstTickPosition,
@@ -25175,6 +26441,7 @@
           year: currentYear,
           month: Utils$1.monthMod(month)
         });
+        hour++;
         var pos = firstTickPosition; // keep drawing rest of the ticks
 
         for (var i = 0; i < numberOfHours; i++) {
@@ -25184,8 +26451,10 @@
             hour = 0;
             date += 1;
             unit = 'day';
-            var checkNextMonth = changeDate(date, month);
-            month = checkNextMonth.month;
+
+            var _checkNextMonth = changeDate(date, month);
+
+            month = _checkNextMonth.month;
             month = changeMonth(date, month);
           }
 
@@ -25492,7 +26761,7 @@
           'xmlns:data': 'ApexChartsNS',
           transform: "translate(".concat(cnf.chart.offsetX, ", ").concat(cnf.chart.offsetY, ")")
         });
-        gl.dom.Paper.node.style.background = cnf.chart.background;
+        gl.dom.Paper.node.style.background = cnf.theme.mode === 'dark' && !cnf.chart.background ? 'rgba(0, 0, 0, 0.8)' : cnf.chart.background;
         this.setSVGDimensions(); // append foreignElement (legend's parent)
         // legend is kept in foreignElement to be included while exporting
         // removing foreignElement and creating legend through HTML will not render legend in export
@@ -25700,7 +26969,7 @@
 
             case 'boxPlot':
               var boxPlot = new BoxCandleStick(this.ctx, xyRatios);
-              elGraph = boxPlot.draw(gl.series, 'boxPlot');
+              elGraph = boxPlot.draw(gl.series, cnf.chart.type);
               break;
 
             case 'rangeBar':
@@ -25949,7 +27218,7 @@
 
 
         if (typeof w.config.chart.events.selection !== 'function') {
-          var targets = w.config.chart.brush.targets || [w.config.chart.brush.target]; // retro compatibility with single target option
+          var targets = Array.isArray(w.config.chart.brush.targets) ? w.config.chart.brush.targets : [w.config.chart.brush.target]; // retro compatibility with single target option
 
           targets.forEach(function (target) {
             var targetChart = ApexCharts.getChartByID(target);
@@ -25971,26 +27240,12 @@
           w.config.chart.events.selection = function (chart, e) {
             targets.forEach(function (target) {
               var targetChart = ApexCharts.getChartByID(target);
-              var yaxis = Utils$1.clone(w.config.yaxis);
-
-              if (w.config.chart.brush.autoScaleYaxis && targetChart.w.globals.series.length === 1) {
-                var scale = new Range$1(targetChart);
-                yaxis = scale.autoScaleY(targetChart, yaxis, e);
-              }
-
-              var multipleYaxis = targetChart.w.config.yaxis.reduce(function (acc, curr, index) {
-                return [].concat(_toConsumableArray(acc), [_objectSpread2(_objectSpread2({}, targetChart.w.config.yaxis[index]), {}, {
-                  min: yaxis[0].min,
-                  max: yaxis[0].max
-                })]);
-              }, []);
 
               targetChart.ctx.updateHelpers._updateOptions({
                 xaxis: {
                   min: e.xaxis.min,
                   max: e.xaxis.max
-                },
-                yaxis: multipleYaxis
+                }
               }, false, false, false, false);
             });
           };
@@ -26154,10 +27409,12 @@
         var w = this.w;
         var ser = w.config.series[i];
         return _objectSpread2(_objectSpread2({}, w.config.series[i]), {}, {
-          name: s.name ? s.name : ser && ser.name,
-          color: s.color ? s.color : ser && ser.color,
-          type: s.type ? s.type : ser && ser.type,
-          data: s.data ? s.data : ser && ser.data
+          name: s.name ? s.name : ser === null || ser === void 0 ? void 0 : ser.name,
+          color: s.color ? s.color : ser === null || ser === void 0 ? void 0 : ser.color,
+          type: s.type ? s.type : ser === null || ser === void 0 ? void 0 : ser.type,
+          group: s.group ? s.group : ser === null || ser === void 0 ? void 0 : ser.group,
+          data: s.data ? s.data : ser === null || ser === void 0 ? void 0 : ser.data,
+          zIndex: typeof s.zIndex !== 'undefined' ? s.zIndex : i
         });
       }
     }, {
@@ -26708,6 +27965,11 @@
         p.x = c[2];
         p.y = c[3];
         return ['Q', c[0], c[1], c[2], c[3]];
+      },
+      S: function S(c, p) {
+        p.x = c[2];
+        p.y = c[3];
+        return ['S', c[0], c[1], c[2], c[3]];
       },
       Z: function Z(c, p, p0) {
         p.x = p0.x;
@@ -28339,7 +29601,7 @@
       SVG.listeners[index][ev][ns][listener._svgjsListenerId] = l; // add listener
 
       node.addEventListener(ev, l, options || {
-        passive: true
+        passive: false
       });
     }; // Add event unbinder in the SVG namespace
 
@@ -31955,7 +33217,7 @@
     _createClass(InitCtxVariables, [{
       key: "initModules",
       value: function initModules() {
-        this.ctx.publicMethods = ['updateOptions', 'updateSeries', 'appendData', 'appendSeries', 'toggleSeries', 'showSeries', 'hideSeries', 'setLocale', 'resetSeries', 'zoomX', 'toggleDataPointSelection', 'dataURI', 'exportToCSV', 'addXaxisAnnotation', 'addYaxisAnnotation', 'addPointAnnotation', 'clearAnnotations', 'removeAnnotation', 'paper', 'destroy'];
+        this.ctx.publicMethods = ['updateOptions', 'updateSeries', 'appendData', 'appendSeries', 'isSeriesHidden', 'toggleSeries', 'showSeries', 'hideSeries', 'setLocale', 'resetSeries', 'zoomX', 'toggleDataPointSelection', 'dataURI', 'exportToCSV', 'addXaxisAnnotation', 'addYaxisAnnotation', 'addPointAnnotation', 'clearAnnotations', 'removeAnnotation', 'paper', 'destroy'];
         this.ctx.eventList = ['click', 'mousedown', 'mousemove', 'mouseleave', 'touchstart', 'touchmove', 'touchleave', 'mouseup', 'touchend'];
         this.ctx.animations = new Animations(this.ctx);
         this.ctx.axes = new Axes(this.ctx);
@@ -32146,7 +33408,7 @@
     }
   }
 
-  var css_248z = "@keyframes opaque {\n  0% {\n      opacity: 0\n  }\n\n  to {\n      opacity: 1\n  }\n}\n\n@keyframes resizeanim {\n  0%,to {\n      opacity: 0\n  }\n}\n\n.apexcharts-canvas {\n  position: relative;\n  user-select: none\n}\n\n.apexcharts-canvas ::-webkit-scrollbar {\n  -webkit-appearance: none;\n  width: 6px\n}\n\n.apexcharts-canvas ::-webkit-scrollbar-thumb {\n  border-radius: 4px;\n  background-color: rgba(0,0,0,.5);\n  box-shadow: 0 0 1px rgba(255,255,255,.5);\n  -webkit-box-shadow: 0 0 1px rgba(255,255,255,.5)\n}\n\n.apexcharts-inner {\n  position: relative\n}\n\n.apexcharts-text tspan {\n  font-family: inherit\n}\n\n.legend-mouseover-inactive {\n  transition: .15s ease all;\n  opacity: .2\n}\n\n.apexcharts-legend-text {\n  padding-left: 15px;\n  margin-left: -15px;\n}\n\n.apexcharts-series-collapsed {\n  opacity: 0\n}\n\n.apexcharts-tooltip {\n  border-radius: 5px;\n  box-shadow: 2px 2px 6px -4px #999;\n  cursor: default;\n  font-size: 14px;\n  left: 62px;\n  opacity: 0;\n  pointer-events: none;\n  position: absolute;\n  top: 20px;\n  display: flex;\n  flex-direction: column;\n  overflow: hidden;\n  white-space: nowrap;\n  z-index: 12;\n  transition: .15s ease all\n}\n\n.apexcharts-tooltip.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-tooltip.apexcharts-theme-light {\n  border: 1px solid #e3e3e3;\n  background: rgba(255,255,255,.96)\n}\n\n.apexcharts-tooltip.apexcharts-theme-dark {\n  color: #fff;\n  background: rgba(30,30,30,.8)\n}\n\n.apexcharts-tooltip * {\n  font-family: inherit\n}\n\n.apexcharts-tooltip-title {\n  padding: 6px;\n  font-size: 15px;\n  margin-bottom: 4px\n}\n\n.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title {\n  background: #eceff1;\n  border-bottom: 1px solid #ddd\n}\n\n.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title {\n  background: rgba(0,0,0,.7);\n  border-bottom: 1px solid #333\n}\n\n.apexcharts-tooltip-text-goals-value,.apexcharts-tooltip-text-y-value,.apexcharts-tooltip-text-z-value {\n  display: inline-block;\n  margin-left: 5px;\n  font-weight: 600\n}\n\n.apexcharts-tooltip-text-goals-label:empty,.apexcharts-tooltip-text-goals-value:empty,.apexcharts-tooltip-text-y-label:empty,.apexcharts-tooltip-text-y-value:empty,.apexcharts-tooltip-text-z-value:empty,.apexcharts-tooltip-title:empty {\n  display: none\n}\n\n.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value {\n  padding: 6px 0 5px\n}\n\n.apexcharts-tooltip-goals-group,.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value {\n  display: flex\n}\n\n.apexcharts-tooltip-text-goals-label:not(:empty),.apexcharts-tooltip-text-goals-value:not(:empty) {\n  margin-top: -6px\n}\n\n.apexcharts-tooltip-marker {\n  width: 12px;\n  height: 12px;\n  position: relative;\n  top: 0;\n  margin-right: 10px;\n  border-radius: 50%\n}\n\n.apexcharts-tooltip-series-group {\n  padding: 0 10px;\n  display: none;\n  text-align: left;\n  justify-content: left;\n  align-items: center\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active .apexcharts-tooltip-marker {\n  opacity: 1\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active,.apexcharts-tooltip-series-group:last-child {\n  padding-bottom: 4px\n}\n\n.apexcharts-tooltip-series-group-hidden {\n  opacity: 0;\n  height: 0;\n  line-height: 0;\n  padding: 0!important\n}\n\n.apexcharts-tooltip-y-group {\n  padding: 6px 0 5px\n}\n\n.apexcharts-custom-tooltip,.apexcharts-tooltip-box {\n  padding: 4px 8px\n}\n\n.apexcharts-tooltip-boxPlot {\n  display: flex;\n  flex-direction: column-reverse\n}\n\n.apexcharts-tooltip-box>div {\n  margin: 4px 0\n}\n\n.apexcharts-tooltip-box span.value {\n  font-weight: 700\n}\n\n.apexcharts-tooltip-rangebar {\n  padding: 5px 8px\n}\n\n.apexcharts-tooltip-rangebar .category {\n  font-weight: 600;\n  color: #777\n}\n\n.apexcharts-tooltip-rangebar .series-name {\n  font-weight: 700;\n  display: block;\n  margin-bottom: 5px\n}\n\n.apexcharts-xaxistooltip,.apexcharts-yaxistooltip {\n  opacity: 0;\n  pointer-events: none;\n  color: #373d3f;\n  font-size: 13px;\n  text-align: center;\n  border-radius: 2px;\n  position: absolute;\n  z-index: 10;\n  background: #eceff1;\n  border: 1px solid #90a4ae\n}\n\n.apexcharts-xaxistooltip {\n  padding: 9px 10px;\n  transition: .15s ease all\n}\n\n.apexcharts-xaxistooltip.apexcharts-theme-dark {\n  background: rgba(0,0,0,.7);\n  border: 1px solid rgba(0,0,0,.5);\n  color: #fff\n}\n\n.apexcharts-xaxistooltip:after,.apexcharts-xaxistooltip:before {\n  left: 50%;\n  border: solid transparent;\n  content: \" \";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n.apexcharts-xaxistooltip:after {\n  border-color: transparent;\n  border-width: 6px;\n  margin-left: -6px\n}\n\n.apexcharts-xaxistooltip:before {\n  border-color: transparent;\n  border-width: 7px;\n  margin-left: -7px\n}\n\n.apexcharts-xaxistooltip-bottom:after,.apexcharts-xaxistooltip-bottom:before {\n  bottom: 100%\n}\n\n.apexcharts-xaxistooltip-top:after,.apexcharts-xaxistooltip-top:before {\n  top: 100%\n}\n\n.apexcharts-xaxistooltip-bottom:after {\n  border-bottom-color: #eceff1\n}\n\n.apexcharts-xaxistooltip-bottom:before {\n  border-bottom-color: #90a4ae\n}\n\n.apexcharts-xaxistooltip-bottom.apexcharts-theme-dark:after,.apexcharts-xaxistooltip-bottom.apexcharts-theme-dark:before {\n  border-bottom-color: rgba(0,0,0,.5)\n}\n\n.apexcharts-xaxistooltip-top:after {\n  border-top-color: #eceff1\n}\n\n.apexcharts-xaxistooltip-top:before {\n  border-top-color: #90a4ae\n}\n\n.apexcharts-xaxistooltip-top.apexcharts-theme-dark:after,.apexcharts-xaxistooltip-top.apexcharts-theme-dark:before {\n  border-top-color: rgba(0,0,0,.5)\n}\n\n.apexcharts-xaxistooltip.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-yaxistooltip {\n  padding: 4px 10px\n}\n\n.apexcharts-yaxistooltip.apexcharts-theme-dark {\n  background: rgba(0,0,0,.7);\n  border: 1px solid rgba(0,0,0,.5);\n  color: #fff\n}\n\n.apexcharts-yaxistooltip:after,.apexcharts-yaxistooltip:before {\n  top: 50%;\n  border: solid transparent;\n  content: \" \";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n.apexcharts-yaxistooltip:after {\n  border-color: transparent;\n  border-width: 6px;\n  margin-top: -6px\n}\n\n.apexcharts-yaxistooltip:before {\n  border-color: transparent;\n  border-width: 7px;\n  margin-top: -7px\n}\n\n.apexcharts-yaxistooltip-left:after,.apexcharts-yaxistooltip-left:before {\n  left: 100%\n}\n\n.apexcharts-yaxistooltip-right:after,.apexcharts-yaxistooltip-right:before {\n  right: 100%\n}\n\n.apexcharts-yaxistooltip-left:after {\n  border-left-color: #eceff1\n}\n\n.apexcharts-yaxistooltip-left:before {\n  border-left-color: #90a4ae\n}\n\n.apexcharts-yaxistooltip-left.apexcharts-theme-dark:after,.apexcharts-yaxistooltip-left.apexcharts-theme-dark:before {\n  border-left-color: rgba(0,0,0,.5)\n}\n\n.apexcharts-yaxistooltip-right:after {\n  border-right-color: #eceff1\n}\n\n.apexcharts-yaxistooltip-right:before {\n  border-right-color: #90a4ae\n}\n\n.apexcharts-yaxistooltip-right.apexcharts-theme-dark:after,.apexcharts-yaxistooltip-right.apexcharts-theme-dark:before {\n  border-right-color: rgba(0,0,0,.5)\n}\n\n.apexcharts-yaxistooltip.apexcharts-active {\n  opacity: 1\n}\n\n.apexcharts-yaxistooltip-hidden {\n  display: none\n}\n\n.apexcharts-xcrosshairs,.apexcharts-ycrosshairs {\n  pointer-events: none;\n  opacity: 0;\n  transition: .15s ease all\n}\n\n.apexcharts-xcrosshairs.apexcharts-active,.apexcharts-ycrosshairs.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-ycrosshairs-hidden {\n  opacity: 0\n}\n\n.apexcharts-selection-rect {\n  cursor: move\n}\n\n.svg_select_boundingRect,.svg_select_points_rot {\n  pointer-events: none;\n  opacity: 0;\n  visibility: hidden\n}\n\n.apexcharts-selection-rect+g .svg_select_boundingRect,.apexcharts-selection-rect+g .svg_select_points_rot {\n  opacity: 0;\n  visibility: hidden\n}\n\n.apexcharts-selection-rect+g .svg_select_points_l,.apexcharts-selection-rect+g .svg_select_points_r {\n  cursor: ew-resize;\n  opacity: 1;\n  visibility: visible\n}\n\n.svg_select_points {\n  fill: #efefef;\n  stroke: #333;\n  rx: 2\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-zoom {\n  cursor: crosshair\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-pan {\n  cursor: move\n}\n\n.apexcharts-menu-icon,.apexcharts-pan-icon,.apexcharts-reset-icon,.apexcharts-selection-icon,.apexcharts-toolbar-custom-icon,.apexcharts-zoom-icon,.apexcharts-zoomin-icon,.apexcharts-zoomout-icon {\n  cursor: pointer;\n  width: 20px;\n  height: 20px;\n  line-height: 24px;\n  color: #6e8192;\n  text-align: center\n}\n\n.apexcharts-menu-icon svg,.apexcharts-reset-icon svg,.apexcharts-zoom-icon svg,.apexcharts-zoomin-icon svg,.apexcharts-zoomout-icon svg {\n  fill: #6e8192\n}\n\n.apexcharts-selection-icon svg {\n  fill: #444;\n  transform: scale(.76)\n}\n\n.apexcharts-theme-dark .apexcharts-menu-icon svg,.apexcharts-theme-dark .apexcharts-pan-icon svg,.apexcharts-theme-dark .apexcharts-reset-icon svg,.apexcharts-theme-dark .apexcharts-selection-icon svg,.apexcharts-theme-dark .apexcharts-toolbar-custom-icon svg,.apexcharts-theme-dark .apexcharts-zoom-icon svg,.apexcharts-theme-dark .apexcharts-zoomin-icon svg,.apexcharts-theme-dark .apexcharts-zoomout-icon svg {\n  fill: #f3f4f5\n}\n\n.apexcharts-canvas .apexcharts-reset-zoom-icon.apexcharts-selected svg,.apexcharts-canvas .apexcharts-selection-icon.apexcharts-selected svg,.apexcharts-canvas .apexcharts-zoom-icon.apexcharts-selected svg {\n  fill: #008ffb\n}\n\n.apexcharts-theme-light .apexcharts-menu-icon:hover svg,.apexcharts-theme-light .apexcharts-reset-icon:hover svg,.apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover svg,.apexcharts-theme-light .apexcharts-zoom-icon:not(.apexcharts-selected):hover svg,.apexcharts-theme-light .apexcharts-zoomin-icon:hover svg,.apexcharts-theme-light .apexcharts-zoomout-icon:hover svg {\n  fill: #333\n}\n\n.apexcharts-menu-icon,.apexcharts-selection-icon {\n  position: relative\n}\n\n.apexcharts-reset-icon {\n  margin-left: 5px\n}\n\n.apexcharts-menu-icon,.apexcharts-reset-icon,.apexcharts-zoom-icon {\n  transform: scale(.85)\n}\n\n.apexcharts-zoomin-icon,.apexcharts-zoomout-icon {\n  transform: scale(.7)\n}\n\n.apexcharts-zoomout-icon {\n  margin-right: 3px\n}\n\n.apexcharts-pan-icon {\n  transform: scale(.62);\n  position: relative;\n  left: 1px;\n  top: 0\n}\n\n.apexcharts-pan-icon svg {\n  fill: #fff;\n  stroke: #6e8192;\n  stroke-width: 2\n}\n\n.apexcharts-pan-icon.apexcharts-selected svg {\n  stroke: #008ffb\n}\n\n.apexcharts-pan-icon:not(.apexcharts-selected):hover svg {\n  stroke: #333\n}\n\n.apexcharts-toolbar {\n  position: absolute;\n  z-index: 11;\n  max-width: 176px;\n  text-align: right;\n  border-radius: 3px;\n  padding: 0 6px 2px;\n  display: flex;\n  justify-content: space-between;\n  align-items: center\n}\n\n.apexcharts-menu {\n  background: #fff;\n  position: absolute;\n  top: 100%;\n  border: 1px solid #ddd;\n  border-radius: 3px;\n  padding: 3px;\n  right: 10px;\n  opacity: 0;\n  min-width: 110px;\n  transition: .15s ease all;\n  pointer-events: none\n}\n\n.apexcharts-menu.apexcharts-menu-open {\n  opacity: 1;\n  pointer-events: all;\n  transition: .15s ease all\n}\n\n.apexcharts-menu-item {\n  padding: 6px 7px;\n  font-size: 12px;\n  cursor: pointer\n}\n\n.apexcharts-theme-light .apexcharts-menu-item:hover {\n  background: #eee\n}\n\n.apexcharts-theme-dark .apexcharts-menu {\n  background: rgba(0,0,0,.7);\n  color: #fff\n}\n\n@media screen and (min-width:768px) {\n  .apexcharts-canvas:hover .apexcharts-toolbar {\n      opacity: 1\n  }\n}\n\n.apexcharts-canvas .apexcharts-element-hidden,.apexcharts-datalabel.apexcharts-element-hidden,.apexcharts-hide .apexcharts-series-points {\n  opacity: 0\n}\n\n.apexcharts-datalabel,.apexcharts-datalabel-label,.apexcharts-datalabel-value,.apexcharts-datalabels,.apexcharts-pie-label {\n  cursor: default;\n  pointer-events: none\n}\n\n.apexcharts-pie-label-delay {\n  opacity: 0;\n  animation-name: opaque;\n  animation-duration: .3s;\n  animation-fill-mode: forwards;\n  animation-timing-function: ease\n}\n\n.apexcharts-annotation-rect,.apexcharts-area-series .apexcharts-area,.apexcharts-area-series .apexcharts-series-markers .apexcharts-marker.no-pointer-events,.apexcharts-gridline,.apexcharts-line,.apexcharts-line-series .apexcharts-series-markers .apexcharts-marker.no-pointer-events,.apexcharts-point-annotation-label,.apexcharts-radar-series path,.apexcharts-radar-series polygon,.apexcharts-toolbar svg,.apexcharts-tooltip .apexcharts-marker,.apexcharts-xaxis-annotation-label,.apexcharts-yaxis-annotation-label,.apexcharts-zoom-rect {\n  pointer-events: none\n}\n\n.apexcharts-marker {\n  transition: .15s ease all\n}\n\n.resize-triggers {\n  animation: 1ms resizeanim;\n  visibility: hidden;\n  opacity: 0;\n  height: 100%;\n  width: 100%;\n  overflow: hidden\n}\n\n.contract-trigger:before,.resize-triggers,.resize-triggers>div {\n  content: \" \";\n  display: block;\n  position: absolute;\n  top: 0;\n  left: 0\n}\n\n.resize-triggers>div {\n  height: 100%;\n  width: 100%;\n  background: #eee;\n  overflow: auto\n}\n\n.contract-trigger:before {\n  overflow: hidden;\n  width: 200%;\n  height: 200%\n}\n";
+  var css_248z = "@keyframes opaque {\n  0% {\n      opacity: 0\n  }\n\n  to {\n      opacity: 1\n  }\n}\n\n@keyframes resizeanim {\n  0%,to {\n      opacity: 0\n  }\n}\n\n.apexcharts-canvas {\n  position: relative;\n  user-select: none\n}\n\n.apexcharts-canvas ::-webkit-scrollbar {\n  -webkit-appearance: none;\n  width: 6px\n}\n\n.apexcharts-canvas ::-webkit-scrollbar-thumb {\n  border-radius: 4px;\n  background-color: rgba(0,0,0,.5);\n  box-shadow: 0 0 1px rgba(255,255,255,.5);\n  -webkit-box-shadow: 0 0 1px rgba(255,255,255,.5)\n}\n\n.apexcharts-inner {\n  position: relative\n}\n\n.apexcharts-text tspan {\n  font-family: inherit\n}\n\n.legend-mouseover-inactive {\n  transition: .15s ease all;\n  opacity: .2\n}\n\n.apexcharts-legend-text {\n  padding-left: 15px;\n  margin-left: -15px;\n}\n\n.apexcharts-series-collapsed {\n  opacity: 0\n}\n\n.apexcharts-tooltip {\n  border-radius: 5px;\n  box-shadow: 2px 2px 6px -4px #999;\n  cursor: default;\n  font-size: 14px;\n  left: 62px;\n  opacity: 0;\n  pointer-events: none;\n  position: absolute;\n  top: 20px;\n  display: flex;\n  flex-direction: column;\n  overflow: hidden;\n  white-space: nowrap;\n  z-index: 12;\n  transition: .15s ease all\n}\n\n.apexcharts-tooltip.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-tooltip.apexcharts-theme-light {\n  border: 1px solid #e3e3e3;\n  background: rgba(255,255,255,.96)\n}\n\n.apexcharts-tooltip.apexcharts-theme-dark {\n  color: #fff;\n  background: rgba(30,30,30,.8)\n}\n\n.apexcharts-tooltip * {\n  font-family: inherit\n}\n\n.apexcharts-tooltip-title {\n  padding: 6px;\n  font-size: 15px;\n  margin-bottom: 4px\n}\n\n.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title {\n  background: #eceff1;\n  border-bottom: 1px solid #ddd\n}\n\n.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title {\n  background: rgba(0,0,0,.7);\n  border-bottom: 1px solid #333\n}\n\n.apexcharts-tooltip-text-goals-value,.apexcharts-tooltip-text-y-value,.apexcharts-tooltip-text-z-value {\n  display: inline-block;\n  margin-left: 5px;\n  font-weight: 600\n}\n\n.apexcharts-tooltip-text-goals-label:empty,.apexcharts-tooltip-text-goals-value:empty,.apexcharts-tooltip-text-y-label:empty,.apexcharts-tooltip-text-y-value:empty,.apexcharts-tooltip-text-z-value:empty,.apexcharts-tooltip-title:empty {\n  display: none\n}\n\n.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value {\n  padding: 6px 0 5px\n}\n\n.apexcharts-tooltip-goals-group,.apexcharts-tooltip-text-goals-label,.apexcharts-tooltip-text-goals-value {\n  display: flex\n}\n\n.apexcharts-tooltip-text-goals-label:not(:empty),.apexcharts-tooltip-text-goals-value:not(:empty) {\n  margin-top: -6px\n}\n\n.apexcharts-tooltip-marker {\n  width: 12px;\n  height: 12px;\n  position: relative;\n  top: 0;\n  margin-right: 10px;\n  border-radius: 50%\n}\n\n.apexcharts-tooltip-series-group {\n  padding: 0 10px;\n  display: none;\n  text-align: left;\n  justify-content: left;\n  align-items: center\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active .apexcharts-tooltip-marker {\n  opacity: 1\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active,.apexcharts-tooltip-series-group:last-child {\n  padding-bottom: 4px\n}\n\n.apexcharts-tooltip-series-group-hidden {\n  opacity: 0;\n  height: 0;\n  line-height: 0;\n  padding: 0!important\n}\n\n.apexcharts-tooltip-y-group {\n  padding: 6px 0 5px\n}\n\n.apexcharts-custom-tooltip,.apexcharts-tooltip-box {\n  padding: 4px 8px\n}\n\n.apexcharts-tooltip-boxPlot {\n  display: flex;\n  flex-direction: column-reverse\n}\n\n.apexcharts-tooltip-box>div {\n  margin: 4px 0\n}\n\n.apexcharts-tooltip-box span.value {\n  font-weight: 700\n}\n\n.apexcharts-tooltip-rangebar {\n  padding: 5px 8px\n}\n\n.apexcharts-tooltip-rangebar .category {\n  font-weight: 600;\n  color: #777\n}\n\n.apexcharts-tooltip-rangebar .series-name {\n  font-weight: 700;\n  display: block;\n  margin-bottom: 5px\n}\n\n.apexcharts-xaxistooltip,.apexcharts-yaxistooltip {\n  opacity: 0;\n  pointer-events: none;\n  color: #373d3f;\n  font-size: 13px;\n  text-align: center;\n  border-radius: 2px;\n  position: absolute;\n  z-index: 10;\n  background: #eceff1;\n  border: 1px solid #90a4ae\n}\n\n.apexcharts-xaxistooltip {\n  padding: 9px 10px;\n  transition: .15s ease all\n}\n\n.apexcharts-xaxistooltip.apexcharts-theme-dark {\n  background: rgba(0,0,0,.7);\n  border: 1px solid rgba(0,0,0,.5);\n  color: #fff\n}\n\n.apexcharts-xaxistooltip:after,.apexcharts-xaxistooltip:before {\n  left: 50%;\n  border: solid transparent;\n  content: \" \";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n.apexcharts-xaxistooltip:after {\n  border-color: transparent;\n  border-width: 6px;\n  margin-left: -6px\n}\n\n.apexcharts-xaxistooltip:before {\n  border-color: transparent;\n  border-width: 7px;\n  margin-left: -7px\n}\n\n.apexcharts-xaxistooltip-bottom:after,.apexcharts-xaxistooltip-bottom:before {\n  bottom: 100%\n}\n\n.apexcharts-xaxistooltip-top:after,.apexcharts-xaxistooltip-top:before {\n  top: 100%\n}\n\n.apexcharts-xaxistooltip-bottom:after {\n  border-bottom-color: #eceff1\n}\n\n.apexcharts-xaxistooltip-bottom:before {\n  border-bottom-color: #90a4ae\n}\n\n.apexcharts-xaxistooltip-bottom.apexcharts-theme-dark:after,.apexcharts-xaxistooltip-bottom.apexcharts-theme-dark:before {\n  border-bottom-color: rgba(0,0,0,.5)\n}\n\n.apexcharts-xaxistooltip-top:after {\n  border-top-color: #eceff1\n}\n\n.apexcharts-xaxistooltip-top:before {\n  border-top-color: #90a4ae\n}\n\n.apexcharts-xaxistooltip-top.apexcharts-theme-dark:after,.apexcharts-xaxistooltip-top.apexcharts-theme-dark:before {\n  border-top-color: rgba(0,0,0,.5)\n}\n\n.apexcharts-xaxistooltip.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-yaxistooltip {\n  padding: 4px 10px\n}\n\n.apexcharts-yaxistooltip.apexcharts-theme-dark {\n  background: rgba(0,0,0,.7);\n  border: 1px solid rgba(0,0,0,.5);\n  color: #fff\n}\n\n.apexcharts-yaxistooltip:after,.apexcharts-yaxistooltip:before {\n  top: 50%;\n  border: solid transparent;\n  content: \" \";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n.apexcharts-yaxistooltip:after {\n  border-color: transparent;\n  border-width: 6px;\n  margin-top: -6px\n}\n\n.apexcharts-yaxistooltip:before {\n  border-color: transparent;\n  border-width: 7px;\n  margin-top: -7px\n}\n\n.apexcharts-yaxistooltip-left:after,.apexcharts-yaxistooltip-left:before {\n  left: 100%\n}\n\n.apexcharts-yaxistooltip-right:after,.apexcharts-yaxistooltip-right:before {\n  right: 100%\n}\n\n.apexcharts-yaxistooltip-left:after {\n  border-left-color: #eceff1\n}\n\n.apexcharts-yaxistooltip-left:before {\n  border-left-color: #90a4ae\n}\n\n.apexcharts-yaxistooltip-left.apexcharts-theme-dark:after,.apexcharts-yaxistooltip-left.apexcharts-theme-dark:before {\n  border-left-color: rgba(0,0,0,.5)\n}\n\n.apexcharts-yaxistooltip-right:after {\n  border-right-color: #eceff1\n}\n\n.apexcharts-yaxistooltip-right:before {\n  border-right-color: #90a4ae\n}\n\n.apexcharts-yaxistooltip-right.apexcharts-theme-dark:after,.apexcharts-yaxistooltip-right.apexcharts-theme-dark:before {\n  border-right-color: rgba(0,0,0,.5)\n}\n\n.apexcharts-yaxistooltip.apexcharts-active {\n  opacity: 1\n}\n\n.apexcharts-yaxistooltip-hidden {\n  display: none\n}\n\n.apexcharts-xcrosshairs,.apexcharts-ycrosshairs {\n  pointer-events: none;\n  opacity: 0;\n  transition: .15s ease all\n}\n\n.apexcharts-xcrosshairs.apexcharts-active,.apexcharts-ycrosshairs.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-ycrosshairs-hidden {\n  opacity: 0\n}\n\n.apexcharts-selection-rect {\n  cursor: move\n}\n\n.svg_select_boundingRect,.svg_select_points_rot {\n  pointer-events: none;\n  opacity: 0;\n  visibility: hidden\n}\n\n.apexcharts-selection-rect+g .svg_select_boundingRect,.apexcharts-selection-rect+g .svg_select_points_rot {\n  opacity: 0;\n  visibility: hidden\n}\n\n.apexcharts-selection-rect+g .svg_select_points_l,.apexcharts-selection-rect+g .svg_select_points_r {\n  cursor: ew-resize;\n  opacity: 1;\n  visibility: visible\n}\n\n.svg_select_points {\n  fill: #efefef;\n  stroke: #333;\n  rx: 2\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-zoom {\n  cursor: crosshair\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-pan {\n  cursor: move\n}\n\n.apexcharts-menu-icon,.apexcharts-pan-icon,.apexcharts-reset-icon,.apexcharts-selection-icon,.apexcharts-toolbar-custom-icon,.apexcharts-zoom-icon,.apexcharts-zoomin-icon,.apexcharts-zoomout-icon {\n  cursor: pointer;\n  width: 20px;\n  height: 20px;\n  line-height: 24px;\n  color: #6e8192;\n  text-align: center\n}\n\n.apexcharts-menu-icon svg,.apexcharts-reset-icon svg,.apexcharts-zoom-icon svg,.apexcharts-zoomin-icon svg,.apexcharts-zoomout-icon svg {\n  fill: #6e8192\n}\n\n.apexcharts-selection-icon svg {\n  fill: #444;\n  transform: scale(.76)\n}\n\n.apexcharts-theme-dark .apexcharts-menu-icon svg,.apexcharts-theme-dark .apexcharts-pan-icon svg,.apexcharts-theme-dark .apexcharts-reset-icon svg,.apexcharts-theme-dark .apexcharts-selection-icon svg,.apexcharts-theme-dark .apexcharts-toolbar-custom-icon svg,.apexcharts-theme-dark .apexcharts-zoom-icon svg,.apexcharts-theme-dark .apexcharts-zoomin-icon svg,.apexcharts-theme-dark .apexcharts-zoomout-icon svg {\n  fill: #f3f4f5\n}\n\n.apexcharts-canvas .apexcharts-reset-zoom-icon.apexcharts-selected svg,.apexcharts-canvas .apexcharts-selection-icon.apexcharts-selected svg,.apexcharts-canvas .apexcharts-zoom-icon.apexcharts-selected svg {\n  fill: #008ffb\n}\n\n.apexcharts-theme-light .apexcharts-menu-icon:hover svg,.apexcharts-theme-light .apexcharts-reset-icon:hover svg,.apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover svg,.apexcharts-theme-light .apexcharts-zoom-icon:not(.apexcharts-selected):hover svg,.apexcharts-theme-light .apexcharts-zoomin-icon:hover svg,.apexcharts-theme-light .apexcharts-zoomout-icon:hover svg {\n  fill: #333\n}\n\n.apexcharts-menu-icon,.apexcharts-selection-icon {\n  position: relative\n}\n\n.apexcharts-reset-icon {\n  margin-left: 5px\n}\n\n.apexcharts-menu-icon,.apexcharts-reset-icon,.apexcharts-zoom-icon {\n  transform: scale(.85)\n}\n\n.apexcharts-zoomin-icon,.apexcharts-zoomout-icon {\n  transform: scale(.7)\n}\n\n.apexcharts-zoomout-icon {\n  margin-right: 3px\n}\n\n.apexcharts-pan-icon {\n  transform: scale(.62);\n  position: relative;\n  left: 1px;\n  top: 0\n}\n\n.apexcharts-pan-icon svg {\n  fill: #fff;\n  stroke: #6e8192;\n  stroke-width: 2\n}\n\n.apexcharts-pan-icon.apexcharts-selected svg {\n  stroke: #008ffb\n}\n\n.apexcharts-pan-icon:not(.apexcharts-selected):hover svg {\n  stroke: #333\n}\n\n.apexcharts-toolbar {\n  position: absolute;\n  z-index: 11;\n  max-width: 176px;\n  text-align: right;\n  border-radius: 3px;\n  padding: 0 6px 2px;\n  display: flex;\n  justify-content: space-between;\n  align-items: center\n}\n\n.apexcharts-menu {\n  background: #fff;\n  position: absolute;\n  top: 100%;\n  border: 1px solid #ddd;\n  border-radius: 3px;\n  padding: 3px;\n  right: 10px;\n  opacity: 0;\n  min-width: 110px;\n  transition: .15s ease all;\n  pointer-events: none\n}\n\n.apexcharts-menu.apexcharts-menu-open {\n  opacity: 1;\n  pointer-events: all;\n  transition: .15s ease all\n}\n\n.apexcharts-menu-item {\n  padding: 6px 7px;\n  font-size: 12px;\n  cursor: pointer\n}\n\n.apexcharts-theme-light .apexcharts-menu-item:hover {\n  background: #eee\n}\n\n.apexcharts-theme-dark .apexcharts-menu {\n  background: rgba(0,0,0,.7);\n  color: #fff\n}\n\n@media screen and (min-width:768px) {\n  .apexcharts-canvas:hover .apexcharts-toolbar {\n      opacity: 1\n  }\n}\n\n.apexcharts-canvas .apexcharts-element-hidden,.apexcharts-datalabel.apexcharts-element-hidden,.apexcharts-hide .apexcharts-series-points {\n  opacity: 0\n}\n\n.apexcharts-hidden-element-shown {\n  opacity: 1;\n  transition: 0.25s ease all;\n}\n.apexcharts-datalabel,.apexcharts-datalabel-label,.apexcharts-datalabel-value,.apexcharts-datalabels,.apexcharts-pie-label {\n  cursor: default;\n  pointer-events: none\n}\n\n.apexcharts-pie-label-delay {\n  opacity: 0;\n  animation-name: opaque;\n  animation-duration: .3s;\n  animation-fill-mode: forwards;\n  animation-timing-function: ease\n}\n\n.apexcharts-radialbar-label {\n  cursor: pointer;\n}\n\n.apexcharts-annotation-rect,.apexcharts-area-series .apexcharts-area,.apexcharts-area-series .apexcharts-series-markers .apexcharts-marker.no-pointer-events,.apexcharts-gridline,.apexcharts-line,.apexcharts-line-series .apexcharts-series-markers .apexcharts-marker.no-pointer-events,.apexcharts-point-annotation-label,.apexcharts-radar-series path,.apexcharts-radar-series polygon,.apexcharts-toolbar svg,.apexcharts-tooltip .apexcharts-marker,.apexcharts-xaxis-annotation-label,.apexcharts-yaxis-annotation-label,.apexcharts-zoom-rect {\n  pointer-events: none\n}\n\n.apexcharts-marker {\n  transition: .15s ease all\n}\n\n.resize-triggers {\n  animation: 1ms resizeanim;\n  visibility: hidden;\n  opacity: 0;\n  height: 100%;\n  width: 100%;\n  overflow: hidden\n}\n\n.contract-trigger:before,.resize-triggers,.resize-triggers>div {\n  content: \" \";\n  display: block;\n  position: absolute;\n  top: 0;\n  left: 0\n}\n\n.resize-triggers>div {\n  height: 100%;\n  width: 100%;\n  background: #eee;\n  overflow: auto\n}\n\n.contract-trigger:before {\n  overflow: hidden;\n  width: 200%;\n  height: 200%\n}\n\n.apexcharts-bar-goals-markers{\n  pointer-events: none\n}\n\n.apexcharts-bar-shadows{\n  pointer-events: none\n}\n\n.apexcharts-rangebar-goals-markers{\n  pointer-events: none\n}";
 
   /**
    *
@@ -32218,9 +33480,16 @@
               var globalCSS = doc.getElementById('apexcharts-css');
 
               if (inShadowRoot || !globalCSS) {
+                var _this$opts$chart;
+
                 _this.css = document.createElement('style');
                 _this.css.id = 'apexcharts-css';
                 _this.css.textContent = css_248z;
+                var nonce = ((_this$opts$chart = _this.opts.chart) === null || _this$opts$chart === void 0 ? void 0 : _this$opts$chart.nonce) || _this.w.config.chart.nonce;
+
+                if (nonce) {
+                  _this.css.setAttribute('nonce', nonce);
+                }
 
                 if (inShadowRoot) {
                   // We are in Shadow DOM, add to shadow root
@@ -32385,8 +33654,16 @@
           me.annotations.drawImageAnnos();
           me.annotations.drawTextAnnos();
 
-          if (w.config.grid.position === 'back' && elgrid) {
-            w.globals.dom.elGraphical.add(elgrid.el);
+          if (w.config.grid.position === 'back') {
+            var _elgrid$elGridBorders;
+
+            if (elgrid) {
+              w.globals.dom.elGraphical.add(elgrid.el);
+            }
+
+            if (elgrid !== null && elgrid !== void 0 && (_elgrid$elGridBorders = elgrid.elGridBorders) !== null && _elgrid$elGridBorders !== void 0 && _elgrid$elGridBorders.node) {
+              w.globals.dom.elGraphical.add(elgrid.elGridBorders);
+            }
           }
 
           if (Array.isArray(graphData.elGraph)) {
@@ -32397,12 +33674,16 @@
             w.globals.dom.elGraphical.add(graphData.elGraph);
           }
 
-          if (w.config.grid.position === 'front' && elgrid) {
-            w.globals.dom.elGraphical.add(elgrid.el);
-          }
+          if (w.config.grid.position === 'front') {
+            var _elgrid$elGridBorders2;
 
-          if (elgrid && elgrid.elGridBorders && elgrid.elGridBorders.node) {
-            w.globals.dom.elGraphical.add(elgrid.elGridBorders);
+            if (elgrid) {
+              w.globals.dom.elGraphical.add(elgrid.el);
+            }
+
+            if (elgrid !== null && elgrid !== void 0 && (_elgrid$elGridBorders2 = elgrid.elGridBorders) !== null && _elgrid$elGridBorders2 !== void 0 && _elgrid$elGridBorders2.node) {
+              w.globals.dom.elGraphical.add(elgrid.elGridBorders);
+            }
           }
 
           if (w.config.xaxis.crosshairs.position === 'front') {
@@ -32700,6 +33981,11 @@
         this.series.hideSeries(seriesName);
       }
     }, {
+      key: "isSeriesHidden",
+      value: function isSeriesHidden(seriesName) {
+        this.series.isSeriesHidden(seriesName);
+      }
+    }, {
       key: "resetSeries",
       value: function resetSeries() {
         var shouldUpdateChart = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : true;
@@ -32883,6 +34169,7 @@
       key: "getChartByID",
       value: function getChartByID(id) {
         var chartId = Utils$1.escapeString(id);
+        if (!Apex._chartInstances) return undefined;
 
         var c = Apex._chartInstances.filter(function (ch) {
           return ch.id === chartId;
