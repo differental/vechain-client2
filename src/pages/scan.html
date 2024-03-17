@@ -401,7 +401,7 @@ But that's the difference in our opinions.</textarea>
             formData.append('image', file);
 
             var xhr = new XMLHttpRequest();
-            xhr.open('POST', 'http://172.20.10.6:5000/upload', true);
+            xhr.open('POST', 'http://172.20.13.136:5000/upload', true);
             xhr.onload = function() {
                 if (xhr.status === 200) {
                     document.getElementById('uploadStatus').innerHTML = 'Upload successful!';
