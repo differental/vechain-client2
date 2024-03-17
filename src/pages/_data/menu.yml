@@ -190,6 +190,12 @@ forms:
   title-long: Form elements
   icon: checkbox
 
+scan:
+  url: scan.html
+  title: Scan Images
+  title-long: Scan Images
+  icon: line-scan
+
 extra:
   title: Extra
   icon: star
