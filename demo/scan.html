@@ -14,11 +14,11 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge"/>
     <title>Scan Image - Tabler - Premium and Open Source dashboard template with responsive and high quality UI.</title>
     <!-- CSS files -->
-    <link href="./dist/css/tabler.min.css?1710639805" rel="stylesheet"/>
-    <link href="./dist/css/tabler-flags.min.css?1710639805" rel="stylesheet"/>
-    <link href="./dist/css/tabler-payments.min.css?1710639805" rel="stylesheet"/>
-    <link href="./dist/css/tabler-vendors.min.css?1710639805" rel="stylesheet"/>
-    <link href="./dist/css/demo.min.css?1710639805" rel="stylesheet"/>
+    <link href="./dist/css/tabler.min.css?1710640627" rel="stylesheet"/>
+    <link href="./dist/css/tabler-flags.min.css?1710640627" rel="stylesheet"/>
+    <link href="./dist/css/tabler-payments.min.css?1710640627" rel="stylesheet"/>
+    <link href="./dist/css/tabler-vendors.min.css?1710640627" rel="stylesheet"/>
+    <link href="./dist/css/demo.min.css?1710640627" rel="stylesheet"/>
     <style>
       @import url('https://rsms.me/inter/inter.css');
       :root {
@@ -30,7 +30,7 @@
     </style>
   </head>
   <body >
-    <script src="./dist/js/demo-theme.min.js?1710639805"></script>
+    <script src="./dist/js/demo-theme.min.js?1710640627"></script>
     <div class="page">
       <!-- Navbar -->
       <header class="navbar navbar-expand-md d-print-none" >
@@ -1179,7 +1179,7 @@ But that's the difference in our opinions.</textarea>
                   formData.append('image', file);
               
                   var xhr = new XMLHttpRequest();
-                  xhr.open('POST', 'http://127.0.0.1:5000/upload', true);
+                  xhr.open('POST', 'http://172.20.10.6:5000/upload', true);
                   xhr.onload = function() {
                       if (xhr.status === 200) {
                           document.getElementById('uploadStatus').innerHTML = 'Upload successful!';
@@ -1229,12 +1229,12 @@ But that's the difference in our opinions.</textarea>
       </div>
     </div>
     <!-- Libs JS -->
-    <script src="./dist/libs/nouislider/dist/nouislider.min.js?1710639805" defer></script>
-    <script src="./dist/libs/litepicker/dist/litepicker.js?1710639805" defer></script>
-    <script src="./dist/libs/tom-select/dist/js/tom-select.base.min.js?1710639805" defer></script>
+    <script src="./dist/libs/nouislider/dist/nouislider.min.js?1710640627" defer></script>
+    <script src="./dist/libs/litepicker/dist/litepicker.js?1710640627" defer></script>
+    <script src="./dist/libs/tom-select/dist/js/tom-select.base.min.js?1710640627" defer></script>
     <!-- Tabler Core -->
-    <script src="./dist/js/tabler.min.js?1710639805" defer></script>
-    <script src="./dist/js/demo.min.js?1710639805" defer></script>
+    <script src="./dist/js/tabler.min.js?1710640627" defer></script>
+    <script src="./dist/js/demo.min.js?1710640627" defer></script>
     <script>
       document.addEventListener("DOMContentLoaded", function() {
       	let sliderTriggerList = [].slice.call(document.querySelectorAll("[data-slider]"));
