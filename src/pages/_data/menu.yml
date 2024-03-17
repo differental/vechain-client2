@@ -13,17 +13,9 @@ help:
   title: Help
   icon: lifebuoy
   children:
-    docs:
-      title: Documentation
-      url: https://tabler.io/docs
     changelog:
       url: changelog.html
       title: Changelog
     source-code:
-      url: https://github.com/tabler/tabler
+      url: https://github.com/differental/Vechain
       title: Source code
-    sponsor:
-      color: pink
-      icon: heart
-      url: https://github.com/sponsors/codecalm
-      title: Sponsor project!
